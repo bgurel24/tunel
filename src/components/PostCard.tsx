@@ -5,7 +5,7 @@ import * as Haptics from 'expo-haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useVideoPlayer, VideoView } from 'expo-video';
+import { VideoView } from 'expo-video';
 import { useRef, useState } from 'react';
 import { Alert, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { useInlineVideo } from '@/components/InlineVideo';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
@@ -42,7 +43,16 @@ function initialsOf(username: string) {
   return (letters.slice(0, 2) || username.slice(0, 2)).toUpperCase();
 }
 
-export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: () => void }) {
+export function PostCard({
+  post,
+  active = true,
+  onDeleted,
+}: {
+  post: Post;
+  /** Kart görünür alanda ve ekran odakta mı — false ise video durur, sesi kapanır. */
+  active?: boolean;
+  onDeleted?: () => void;
+}) {
   const router = useRouter();
   const { session } = useAuth();
   const { toast } = useToast();
@@ -52,12 +62,7 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: () => vo
   const [clapped, setClapped] = useState(post.myClapped);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [clapCount, setClapCount] = useState(post.clapCount);
-  const [muted, setMuted] = useState(true);
-  const player = useVideoPlayer(post.videoUrl ?? null, (p) => {
-    p.loop = true;
-    p.muted = true;
-    if (post.videoUrl) p.play();
-  });
+  const { player, muted, toggleMute } = useInlineVideo(post.videoUrl, active);
 
   const isMine = !!post.authorId && post.authorId === session?.user?.id;
   const mediaAspect = post.videoUrl ? 0.8 : aspect;
@@ -72,12 +77,6 @@ export function PostCard({ post, onDeleted }: { post: Post; onDeleted?: () => vo
     transform: [{ scale: 0.6 + burst.value * 0.5 }],
   }));
   const heartStyle = useAnimatedStyle(() => ({ transform: [{ scale: heartPop.value }] }));
-
-  const toggleMute = () => {
-    const next = !muted;
-    player.muted = next;
-    setMuted(next);
-  };
 
   const openProfile = () => {
     if (post.authorId) router.push({ pathname: '/kullanici', params: { id: post.authorId } });

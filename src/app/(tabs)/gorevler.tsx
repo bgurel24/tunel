@@ -52,6 +52,9 @@ export default function GorevlerScreen() {
   const [loading, setLoading] = useState(true);
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
+  // Ekleme kutusu listenin ÜSTÜNDE ve sabit yerde duruyor: görev sayısı artınca
+  // aşağı kayıp klavyenin altında kalmasın diye.
+  const [showAdd, setShowAdd] = useState(false);
 
   const selectedTeam = teams.find((t) => t.id === selectedId) ?? null;
   const isCaptain = selectedTeam?.role === 'captain';
@@ -96,8 +99,9 @@ export default function GorevlerScreen() {
     setLoading(false);
   };
 
+  // Ekledikten sonra kutu açık ve klavye kalkmadan kalır — arka arkaya görev girmek kolay olsun.
   const addTask = async () => {
-    if (!selectedTeam || !newTitle.trim()) return;
+    if (!selectedTeam || !newTitle.trim() || adding) return;
     setAdding(true);
     const { error } = await createTask(selectedTeam.id, newTitle);
     setAdding(false);
@@ -161,16 +165,29 @@ export default function GorevlerScreen() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
       >
         <View style={styles.header}>
           <Text style={styles.title}>Görevler</Text>
-          <Pressable
-            style={styles.trophy}
-            onPress={() => router.push({ pathname: '/liderlik', params: { teamId: selectedId ?? '' } })}
-            hitSlop={8}
-          >
-            <Ionicons name="trophy-outline" size={22} color={colors.accent} />
-          </Pressable>
+          <View style={styles.headerActions}>
+            {isCaptain && (
+              <Pressable
+                style={[styles.iconBtn, showAdd && styles.iconBtnActive]}
+                onPress={() => setShowAdd((v) => !v)}
+                hitSlop={8}
+              >
+                <Ionicons name={showAdd ? 'close' : 'add'} size={22} color={colors.accent} />
+              </Pressable>
+            )}
+            <Pressable
+              style={styles.iconBtn}
+              onPress={() => router.push({ pathname: '/liderlik', params: { teamId: selectedId ?? '' } })}
+              hitSlop={8}
+            >
+              <Ionicons name="trophy-outline" size={22} color={colors.accent} />
+            </Pressable>
+          </View>
         </View>
 
         {teams.length > 1 && (
@@ -206,10 +223,36 @@ export default function GorevlerScreen() {
           </>
         )}
 
+        {isCaptain && showAdd && (
+          <View style={styles.addBox}>
+            <View style={styles.addRow}>
+              <TextInput
+                value={newTitle}
+                onChangeText={setNewTitle}
+                placeholder="ör. Squat videosu"
+                placeholderTextColor={colors.textFaint}
+                style={styles.addInput}
+                autoFocus
+                returnKeyType="done"
+                submitBehavior="submit"
+                onSubmitEditing={addTask}
+              />
+              <Pressable style={styles.addBtn} onPress={addTask} disabled={adding}>
+                {adding ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Ionicons name="add" size={22} color="#fff" />
+                )}
+              </Pressable>
+            </View>
+            <Text style={styles.addHint}>Ekle'ye bastıkça liste büyür, klavye açık kalır.</Text>
+          </View>
+        )}
+
         {tasks.length === 0 ? (
           <View style={styles.noTasks}>
             <Text style={styles.emptyBody}>
-              {isCaptain ? 'Henüz görev yok. Aşağıdan ekle.' : 'Kaptan henüz görev eklemedi.'}
+              {isCaptain ? 'Henüz görev yok. Yukarıdaki + ile ekle.' : 'Kaptan henüz görev eklemedi.'}
             </Text>
           </View>
         ) : (
@@ -251,28 +294,6 @@ export default function GorevlerScreen() {
         )}
 
         {isCaptain && (
-          <View style={styles.addBox}>
-            <Text style={styles.addLabel}>Yeni görev (kaptan)</Text>
-            <View style={styles.addRow}>
-              <TextInput
-                value={newTitle}
-                onChangeText={setNewTitle}
-                placeholder="ör. Squat videosu"
-                placeholderTextColor={colors.textFaint}
-                style={styles.addInput}
-              />
-              <Pressable style={styles.addBtn} onPress={addTask} disabled={adding}>
-                {adding ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Ionicons name="add" size={22} color="#fff" />
-                )}
-              </Pressable>
-            </View>
-          </View>
-        )}
-
-        {isCaptain && (
           <OutlineButton
             label="Kaptan paneli (onaylar)"
             onPress={() => router.push({ pathname: '/kaptan', params: { teamId: selectedTeam?.id ?? '' } })}
@@ -300,7 +321,8 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
   title: { color: colors.text, fontSize: fontSize.xl, fontWeight: '500', paddingTop: spacing.sm },
-  trophy: {
+  headerActions: { flexDirection: 'row', gap: spacing.sm },
+  iconBtn: {
     width: 40,
     height: 40,
     borderRadius: radius.md,
@@ -308,6 +330,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  iconBtnActive: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.accent },
   chips: { marginBottom: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
@@ -357,8 +380,8 @@ const styles = StyleSheet.create({
   uploadText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '500' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   statusText: { fontSize: fontSize.xs, fontWeight: '500' },
-  addBox: { marginTop: spacing.xl },
-  addLabel: { color: colors.textDim, fontSize: fontSize.sm, marginBottom: spacing.sm },
+  addBox: { marginBottom: spacing.lg },
+  addHint: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: spacing.sm },
   addRow: { flexDirection: 'row', gap: spacing.sm },
   addInput: {
     flex: 1,

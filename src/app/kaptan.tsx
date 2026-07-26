@@ -1,17 +1,18 @@
-// Kaptan paneli — kanıtlar (İzle + onayla/reddet) + üye/görev eksik ızgarası.
+// Kaptan paneli — kanıtlar (feed gibi kendiliğinden oynayan video + onayla/reddet)
+// ve üye/görev eksik ızgarası.
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
+import { InlineVideo, useScreenFocused, useVisibleVideo } from '@/components/InlineVideo';
 import { Screen } from '@/components/Screen';
 import { ListSkeleton } from '@/components/Skeleton';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
-import { VideoModal } from '@/components/VideoModal';
 import {
   decideSubmission,
   getCaptainData,
@@ -54,10 +55,14 @@ export default function KaptanScreen() {
   const [data, setData] = useState<CaptainData | null>(null);
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>('onaylar');
-  const [videoUrl, setVideoUrl] = useState<string | null>(null);
 
-  const selectedTeam = teams.find((t) => t.id === selectedId) ?? null;
+  const focused = useScreenFocused();
+  const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
+
   const pendingCount = data?.submissions.filter((s) => s.status === 'pending').length ?? 0;
+  const submissions = tab === 'onaylar' ? data?.submissions ?? [] : [];
+  // Görünürlük geri bildirimi gelene kadar ilk kanıt oynasın.
+  const activeVideoId = visibleId ?? submissions[0]?.id ?? null;
 
   const load = useCallback(async (teamId: string) => {
     const d = await getCaptainData(teamId);
@@ -122,149 +127,156 @@ export default function KaptanScreen() {
           onAction={() => router.push('/join-team')}
         />
       ) : (
-        <ScrollView contentContainerStyle={{ paddingBottom: spacing.xxl }} showsVerticalScrollIndicator={false}>
-          {teams.length > 1 && (
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
-              {teams.map((t) => (
-                <Pressable
-                  key={t.id}
-                  onPress={() => pickTeam(t.id)}
-                  style={[styles.chip, selectedId === t.id && styles.chipActive]}
-                >
-                  <Text style={[styles.chipText, selectedId === t.id && styles.chipTextActive]}>{t.name}</Text>
-                </Pressable>
-              ))}
-            </ScrollView>
+        <FlatList
+          data={submissions}
+          keyExtractor={(s) => s.id}
+          viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
+          contentContainerStyle={{ paddingBottom: spacing.xxl }}
+          showsVerticalScrollIndicator={false}
+          ListHeaderComponent={
+            <View>
+              {teams.length > 1 && (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: spacing.sm }}>
+                  {teams.map((t) => (
+                    <Pressable
+                      key={t.id}
+                      onPress={() => pickTeam(t.id)}
+                      style={[styles.chip, selectedId === t.id && styles.chipActive]}
+                    >
+                      <Text style={[styles.chipText, selectedId === t.id && styles.chipTextActive]}>{t.name}</Text>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              )}
+
+              <View style={styles.stats}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Bekleyen onay</Text>
+                  <Text style={styles.statValue}>{pendingCount}</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statLabel}>Üye</Text>
+                  <Text style={styles.statValue}>{data?.memberCount ?? 0}</Text>
+                </View>
+              </View>
+
+              <View style={styles.toggle}>
+                {(['onaylar', 'eksikler'] as const).map((t) => (
+                  <Pressable
+                    key={t}
+                    style={[styles.segment, tab === t && styles.segmentActive]}
+                    onPress={() => setTab(t)}
+                  >
+                    <Text style={[styles.segmentText, tab === t && styles.segmentTextActive]}>
+                      {t === 'onaylar' ? 'Kanıtlar' : 'Eksik takibi'}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+            </View>
+          }
+          renderItem={({ item: s }) => (
+            <View style={styles.subCard}>
+              <View style={styles.subHead}>
+                <View style={styles.subAvatar}>
+                  <Text style={styles.subAvatarText}>{s.member.slice(0, 2).toUpperCase()}</Text>
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.subMember}>{s.member}</Text>
+                  <Text style={styles.subTask}>{s.taskTitle}</Text>
+                </View>
+                {s.status !== 'pending' && (
+                  <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg }]}>
+                    <Text style={[styles.decidedText, { color: DECIDED[s.status].color }]}>
+                      {DECIDED[s.status].label}
+                    </Text>
+                  </View>
+                )}
+              </View>
+
+              {s.videoUrl ? (
+                <InlineVideo
+                  uri={s.videoUrl}
+                  active={focused && activeVideoId === s.id}
+                  contentFit="contain"
+                  style={styles.videoBox}
+                />
+              ) : (
+                <View style={styles.videoNone}>
+                  <Text style={styles.note}>Video yok</Text>
+                </View>
+              )}
+
+              {s.note ? <Text style={styles.noteLine}>“{s.note}”</Text> : null}
+
+              {s.status === 'pending' && (
+                <View style={styles.subActions}>
+                  <Pressable style={{ flex: 1 }} onPress={() => decide(s.id, true)}>
+                    <LinearGradient
+                      colors={gradientColors}
+                      start={gradientStart}
+                      end={gradientEnd}
+                      style={styles.approveBtn}
+                    >
+                      <Ionicons name="checkmark" size={16} color="#fff" />
+                      <Text style={styles.approveText}>Onayla</Text>
+                    </LinearGradient>
+                  </Pressable>
+                  <Pressable style={styles.rejectBtn} onPress={() => decide(s.id, false)}>
+                    <Ionicons name="close" size={16} color={colors.danger} />
+                    <Text style={styles.rejectText}>Reddet</Text>
+                  </Pressable>
+                </View>
+              )}
+            </View>
           )}
-
-          <View style={styles.stats}>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Bekleyen onay</Text>
-              <Text style={styles.statValue}>{pendingCount}</Text>
-            </View>
-            <View style={styles.statCard}>
-              <Text style={styles.statLabel}>Üye</Text>
-              <Text style={styles.statValue}>{data?.memberCount ?? 0}</Text>
-            </View>
-          </View>
-
-          <View style={styles.toggle}>
-            {(['onaylar', 'eksikler'] as const).map((t) => (
-              <Pressable
-                key={t}
-                style={[styles.segment, tab === t && styles.segmentActive]}
-                onPress={() => setTab(t)}
-              >
-                <Text style={[styles.segmentText, tab === t && styles.segmentTextActive]}>
-                  {t === 'onaylar' ? 'Kanıtlar' : 'Eksik takibi'}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-
-          {tab === 'onaylar' ? (
-            !data || data.submissions.length === 0 ? (
+          ListFooterComponent={
+            tab === 'eksikler' ? (
+              <View>
+                {!data || data.members.length === 0 ? (
+                  <Text style={styles.emptyText}>Üye yok.</Text>
+                ) : (
+                  <>
+                    <View style={styles.gridHeadRow}>
+                      <Text style={[styles.gridHeadCell, { flex: 1, textAlign: 'left' }]}>Üye</Text>
+                      {data.taskCols.map((c, i) => (
+                        <Text key={i} style={styles.gridHeadCell}>
+                          {c}
+                        </Text>
+                      ))}
+                    </View>
+                    {data.members.map((m) => (
+                      <View key={m.name} style={styles.gridRow}>
+                        <Text style={styles.memberName}>{m.name}</Text>
+                        {m.statuses.map((st, i) => {
+                          const c = CELL[st];
+                          return (
+                            <View key={i} style={styles.cellWrap}>
+                              <View style={[styles.cell, { backgroundColor: c.bg }]}>
+                                <Ionicons name={c.icon} size={14} color={c.color} />
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))}
+                    <View style={styles.legend}>
+                      <Legend icon="checkmark" color={colors.success} label="yaptı" />
+                      <Legend icon="time-outline" color={colors.warning} label="onayda" />
+                      <Legend icon="remove" color={colors.textFaint} label="eksik" />
+                    </View>
+                  </>
+                )}
+              </View>
+            ) : submissions.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="videocam-outline" size={40} color={colors.textFaint} />
                 <Text style={styles.emptyText}>Henüz kanıt yok.</Text>
               </View>
-            ) : (
-              data.submissions.map((s) => (
-                <View key={s.id} style={styles.subCard}>
-                  <View style={styles.subHead}>
-                    <View style={styles.subAvatar}>
-                      <Text style={styles.subAvatarText}>{s.member.slice(0, 2).toUpperCase()}</Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.subMember}>{s.member}</Text>
-                      <Text style={styles.subTask}>{s.taskTitle}</Text>
-                    </View>
-                    {s.status !== 'pending' && (
-                      <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg }]}>
-                        <Text style={[styles.decidedText, { color: DECIDED[s.status].color }]}>
-                          {DECIDED[s.status].label}
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-
-                  {s.videoUrl ? (
-                    <Pressable style={styles.videoBox} onPress={() => setVideoUrl(s.videoUrl)}>
-                      <Ionicons name="play-circle" size={44} color={colors.text} />
-                      <Text style={styles.watchText}>İzle</Text>
-                    </Pressable>
-                  ) : (
-                    <View style={styles.videoBox}>
-                      <Text style={styles.note}>Video yok</Text>
-                    </View>
-                  )}
-
-                  {s.note ? <Text style={styles.noteLine}>“{s.note}”</Text> : null}
-
-                  {s.status === 'pending' && (
-                    <View style={styles.subActions}>
-                      <Pressable style={{ flex: 1 }} onPress={() => decide(s.id, true)}>
-                        <LinearGradient
-                          colors={gradientColors}
-                          start={gradientStart}
-                          end={gradientEnd}
-                          style={styles.approveBtn}
-                        >
-                          <Ionicons name="checkmark" size={16} color="#fff" />
-                          <Text style={styles.approveText}>Onayla</Text>
-                        </LinearGradient>
-                      </Pressable>
-                      <Pressable style={styles.rejectBtn} onPress={() => decide(s.id, false)}>
-                        <Ionicons name="close" size={16} color={colors.danger} />
-                        <Text style={styles.rejectText}>Reddet</Text>
-                      </Pressable>
-                    </View>
-                  )}
-                </View>
-              ))
-            )
-          ) : (
-            <View>
-              {!data || data.members.length === 0 ? (
-                <Text style={styles.emptyText}>Üye yok.</Text>
-              ) : (
-                <>
-                  <View style={styles.gridHeadRow}>
-                    <Text style={[styles.gridHeadCell, { flex: 1, textAlign: 'left' }]}>Üye</Text>
-                    {data.taskCols.map((c, i) => (
-                      <Text key={i} style={styles.gridHeadCell}>
-                        {c}
-                      </Text>
-                    ))}
-                  </View>
-                  {data.members.map((m) => (
-                    <View key={m.name} style={styles.gridRow}>
-                      <Text style={styles.memberName}>{m.name}</Text>
-                      {m.statuses.map((st, i) => {
-                        const c = CELL[st];
-                        return (
-                          <View key={i} style={styles.cellWrap}>
-                            <View style={[styles.cell, { backgroundColor: c.bg }]}>
-                              <Ionicons name={c.icon} size={14} color={c.color} />
-                            </View>
-                          </View>
-                        );
-                      })}
-                    </View>
-                  ))}
-                  <View style={styles.legend}>
-                    <Legend icon="checkmark" color={colors.success} label="yaptı" />
-                    <Legend icon="time-outline" color={colors.warning} label="onayda" />
-                    <Legend icon="remove" color={colors.textFaint} label="eksik" />
-                  </View>
-                </>
-              )}
-            </View>
-          )}
-        </ScrollView>
+            ) : null
+          }
+        />
       )}
-
-      {videoUrl && <VideoModal url={videoUrl} onClose={() => setVideoUrl(null)} />}
     </Screen>
   );
 }
@@ -337,15 +349,20 @@ const styles = StyleSheet.create({
   decidedPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill },
   decidedText: { fontSize: fontSize.xs, fontWeight: '500' },
   videoBox: {
+    width: '100%',
+    aspectRatio: 4 / 5,
+    borderRadius: radius.sm,
+    backgroundColor: colors.bg,
+    overflow: 'hidden',
+  },
+  videoNone: {
     minHeight: 96,
     borderRadius: radius.sm,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 4,
     padding: spacing.md,
   },
-  watchText: { color: colors.textDim, fontSize: fontSize.xs },
   note: { color: colors.textFaint, fontSize: fontSize.sm },
   noteLine: { color: colors.textDim, fontSize: fontSize.xs, marginTop: spacing.sm },
   subActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },

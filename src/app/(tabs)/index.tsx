@@ -10,6 +10,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CrewStrip } from '@/components/CrewStrip';
 import { EmptyState } from '@/components/EmptyState';
+import { useVisibleVideo } from '@/components/InlineVideo';
 import { Logo } from '@/components/Logo';
 import { PostCard } from '@/components/PostCard';
 import { Screen } from '@/components/Screen';
@@ -39,11 +40,18 @@ export default function FeedScreen() {
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [focused, setFocused] = useState(true);
+  const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
+
+  // Görünürlük geri bildirimi gelene kadar ilk kart oynasın.
+  const activeId = visibleId ?? posts[0]?.id ?? null;
 
   // Ekran her odaklandığında (paylaşımdan dönünce dahil) feed'i tazele.
+  // Odak bilgisi ayrıca videoları susturmak için kullanılıyor.
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      setFocused(true);
       Promise.all([getFeed(feed), getCrew()]).then(([data, members]) => {
         if (!active) return;
         setPosts(data);
@@ -52,6 +60,7 @@ export default function FeedScreen() {
       });
       return () => {
         active = false;
+        setFocused(false);
       };
     }, [feed])
   );
@@ -85,9 +94,14 @@ export default function FeedScreen() {
         renderItem={({ item, index }) => (
           // Sadece ilk ekrandakiler sıraya girsin; aşağıdakiler gecikmesiz açılsın.
           <Animated.View entering={FadeInDown.delay(Math.min(index, 5) * 70).duration(420)}>
-            <PostCard post={item} onDeleted={() => getFeed(feed).then(setPosts)} />
+            <PostCard
+              post={item}
+              active={focused && activeId === item.id}
+              onDeleted={() => getFeed(feed).then(setPosts)}
+            />
           </Animated.View>
         )}
+        viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{
           paddingHorizontal: spacing.xl,
