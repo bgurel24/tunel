@@ -173,7 +173,7 @@ export default function ProfilScreen() {
                       {stats.badges.map((b, i) => (
                         <View key={i} style={styles.badge}>
                           <Ionicons name={b.icon as any} size={12} color={colors.accent} />
-                          <Text style={styles.badgeText}>{b.label}</Text>
+                          <Text style={styles.badgeText}>{t(b.key)}</Text>
                         </View>
                       ))}
                     </View>

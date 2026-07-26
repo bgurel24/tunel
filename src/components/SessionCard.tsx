@@ -8,6 +8,7 @@ import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
+import { useT } from '@/lib/i18n';
 import { useToast } from '@/components/Toast';
 import { Touchable } from '@/components/Touchable';
 import { avatarGradient } from '@/lib/avatar';
@@ -35,6 +36,7 @@ export function SessionCard({
   onChanged: () => void;
 }) {
   useThemeTick();
+  const t = useT();
   const { toast, confirm } = useToast();
   const [myStatus, setMyStatus] = useState<RsvpStatus | null>(session.myStatus);
 
@@ -64,16 +66,16 @@ export function SessionCard({
 
   const cancelCall = async () => {
     const ok = await confirm({
-      title: 'Çağrıyı geri çek',
-      message: 'Takımdan bu antrenmana çağrın kalkacak.',
-      confirmLabel: 'Geri çek',
+      title: t('session.cancelTitle'),
+      message: t('session.cancelMessage'),
+      confirmLabel: t('session.cancelConfirm'),
       destructive: true,
       icon: 'megaphone-outline',
     });
     if (!ok) return;
     const { error } = await deleteSession(session.id);
     if (error) return toast(error, 'error');
-    toast('Çağrı geri çekildi', 'info');
+    toast(t('session.cancelled'), 'info');
     onChanged();
   };
 
@@ -98,7 +100,9 @@ export function SessionCard({
 
         <View style={{ flex: 1 }}>
           <Text style={styles.host}>
-            {session.isMine ? 'Sen çağırdın' : `${session.hostName} çağırıyor`}
+            {session.isMine
+              ? t('session.youCalled')
+              : t('session.hostCalling', { name: session.hostName })}
           </Text>
           <Text style={styles.team} numberOfLines={1}>
             {session.teamName}
@@ -135,11 +139,13 @@ export function SessionCard({
               ))}
             </View>
             <Text style={styles.peopleText}>
-              {goingCount === 1 ? `${session.going[0].username} geliyor` : `${goingCount} kişi geliyor`}
+              {goingCount === 1
+                ? t('session.oneGoing', { name: session.going[0].username })
+                : t('session.manyGoing', { n: goingCount })}
             </Text>
           </>
         ) : (
-          <Text style={styles.peopleText}>Henüz kimse söz vermedi</Text>
+          <Text style={styles.peopleText}>{t('session.nobody')}</Text>
         )}
       </View>
 
@@ -157,7 +163,7 @@ export function SessionCard({
               color={myStatus === 'in' ? colors.success : colors.textDim}
             />
             <Text style={[styles.btnText, myStatus === 'in' && { color: colors.success }]}>
-              Geliyorum
+              {t('session.in')}
             </Text>
           </Touchable>
 
@@ -173,7 +179,7 @@ export function SessionCard({
               color={myStatus === 'out' ? colors.danger : colors.textDim}
             />
             <Text style={[styles.btnText, myStatus === 'out' && { color: colors.danger }]}>
-              Yokum
+              {t('session.out')}
             </Text>
           </Touchable>
         </View>

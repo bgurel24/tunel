@@ -2,6 +2,7 @@
 // Takıma çağrı aç, üyeler geliyorum/yokum işaretlesin.
 
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export type RsvpStatus = 'in' | 'out';
 
@@ -98,7 +99,7 @@ export async function createSession(params: {
 }): Promise<{ error: string | null }> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı' };
+  if (!uid) return { error: t('err.noSession') };
 
   const { data, error } = await supabase
     .from('gym_sessions')
@@ -129,7 +130,7 @@ export async function setRsvp(
 ): Promise<{ error: string | null }> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı' };
+  if (!uid) return { error: t('err.noSession') };
 
   if (status === null) {
     const { error } = await supabase

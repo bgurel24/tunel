@@ -3,6 +3,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { StyleSheet, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { Screen } from '@/components/Screen';
 import { useTabBarPadding } from '@/components/TabBar';
@@ -17,13 +18,14 @@ type Props = {
 
 export function Placeholder({ title, icon, description }: Props) {
   useThemeTick();
+  const t = useT();
   const bottomPad = useTabBarPadding();
 
   return (
     <Screen edges={['top']}>
       <Text style={styles.title}>{title}</Text>
       <View style={{ flex: 1, paddingBottom: bottomPad }}>
-        <EmptyState icon={icon} title="Yakında" body={description} />
+        <EmptyState icon={icon} title={t('common.soon')} body={description} />
       </View>
     </Screen>
   );

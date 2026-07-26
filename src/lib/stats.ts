@@ -1,8 +1,9 @@
 // Kişisel istatistikler — seri (streak) + rozetler. Gerçek verilerden hesaplanır.
 
+import type { TranslationKey } from '@/lib/i18n';
 import { supabase } from '@/lib/supabase';
 
-export type Badge = { icon: string; label: string };
+export type Badge = { icon: string; key: TranslationKey };
 
 export type MyStats = {
   currentStreak: number;
@@ -64,13 +65,13 @@ function computeStreak(isoDates: string[]): { current: number; longest: number }
 
 function buildBadges(s: Omit<MyStats, 'badges' | 'activeDays'>): Badge[] {
   const b: Badge[] = [];
-  if (s.totalPosts >= 1) b.push({ icon: 'sparkles', label: 'İlk paylaşım' });
-  if (s.totalPosts >= 10) b.push({ icon: 'flame', label: 'Aktif paylaşımcı' });
-  if (s.currentStreak >= 3) b.push({ icon: 'flame', label: `${s.currentStreak} gün seri` });
-  if (s.longestStreak >= 7) b.push({ icon: 'trophy', label: '7 gün kesintisiz' });
-  if (s.prCount >= 1) b.push({ icon: 'barbell', label: 'Rekor avcısı' });
-  if (s.approvedTasks >= 1) b.push({ icon: 'checkmark-done', label: 'Görev tamamladı' });
-  if (s.approvedTasks >= 5) b.push({ icon: 'medal', label: 'Görev canavarı' });
+  if (s.totalPosts >= 1) b.push({ icon: 'sparkles', key: 'badge.firstPost' });
+  if (s.totalPosts >= 10) b.push({ icon: 'flame', key: 'badge.activePoster' });
+  if (s.currentStreak >= 3) b.push({ icon: 'flame', key: 'badge.streak3' });
+  if (s.longestStreak >= 7) b.push({ icon: 'trophy', key: 'badge.streak7' });
+  if (s.prCount >= 1) b.push({ icon: 'barbell', key: 'badge.record' });
+  if (s.approvedTasks >= 1) b.push({ icon: 'checkmark-done', key: 'badge.task1' });
+  if (s.approvedTasks >= 5) b.push({ icon: 'medal', key: 'badge.task5' });
   return b;
 }
 

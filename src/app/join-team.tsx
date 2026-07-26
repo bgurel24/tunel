@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View, } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
@@ -18,6 +19,7 @@ type Mode = 'katil' | 'olustur';
 
 export default function TeamScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { celebrate } = useToast();
   const { configured } = useAuth();
@@ -38,7 +40,7 @@ export default function TeamScreen() {
   const submit = async () => {
     reset();
     if (!configured) {
-      setError('Supabase bağlı değil. .env yapılandırıldıktan sonra aktif olacak.');
+      setError(t('team.notConfigured'));
       return;
     }
     setLoading(true);
@@ -51,19 +53,19 @@ export default function TeamScreen() {
       const res = await joinTeam(code);
       setLoading(false);
       if (res.error) return setError(res.error);
-      setSuccess(`Takıma katıldın: ${res.teamName}`);
-      celebrate(`${res.teamName} takımına katıldın`);
+      setSuccess(t('team.joined', { name: res.teamName ?? '' }));
+      celebrate(t('team.joinedCelebrate', { name: res.teamName ?? '' }));
     } else {
       if (!name.trim()) {
         setLoading(false);
-        setError('Takım adı gerekli.');
+        setError(t('team.nameRequired'));
         return;
       }
       const res = await createTeam(name);
       setLoading(false);
       if (res.error) return setError(res.error);
       setCreatedCode(res.inviteCode ?? null);
-      setSuccess(`"${name}" oluşturuldu — kaptan sensin.`);
+      setSuccess(t('team.created', { name }));
       celebrate(`"${name}" kuruldu, kaptan sensin`);
     }
   };
@@ -74,7 +76,7 @@ export default function TeamScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Takım</Text>
+        <Text style={styles.title}>{t('team.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -89,7 +91,7 @@ export default function TeamScreen() {
             }}
           >
             <Text style={[styles.segmentText, mode === m && styles.segmentTextActive]}>
-              {m === 'katil' ? 'Katıl' : 'Oluştur'}
+              {t(m === 'katil' ? 'team.join' : 'team.create')}
             </Text>
           </Pressable>
         ))}
@@ -98,28 +100,26 @@ export default function TeamScreen() {
       {mode === 'katil' ? (
         <>
           <Text style={styles.lead}>
-            Kaptanının verdiği davet kodunu gir. Takım görevlerine ve liderlik tablosuna
-            erişimin açılır.
+            {t('team.joinLead')}
           </Text>
           <Field
-            label="Davet kodu"
+            label={t('team.codeLabel')}
             value={code}
             onChangeText={setCode}
-            placeholder="ör. DEMIR7"
+            placeholder={t('team.codePlaceholder')}
             autoCapitalize="characters"
           />
         </>
       ) : (
         <>
           <Text style={styles.lead}>
-            Yeni bir takım kur, kaptan ol. Oluşturunca bir davet kodu alırsın; arkadaşlarına
-            gönderip takıma eklersin.
+            {t('team.createLead')}
           </Text>
           <Field
-            label="Takım adı"
+            label={t('team.nameLabel')}
             value={name}
             onChangeText={setName}
-            placeholder="ör. Demir Hane"
+            placeholder={t('team.namePlaceholder')}
           />
         </>
       )}
@@ -129,14 +129,14 @@ export default function TeamScreen() {
 
       {createdCode && (
         <View style={styles.codeBox}>
-          <Text style={styles.codeLabel}>Davet kodu</Text>
+          <Text style={styles.codeLabel}>{t('team.codeLabel')}</Text>
           <Text style={styles.codeValue}>{createdCode}</Text>
-          <Text style={styles.codeHint}>Bu kodu takım arkadaşlarınla paylaş.</Text>
+          <Text style={styles.codeHint}>{t('team.codeHint')}</Text>
         </View>
       )}
 
       <GradientButton
-        label={mode === 'katil' ? 'Katıl' : 'Takım oluştur'}
+        label={t(mode === 'katil' ? 'team.join' : 'team.createCta')}
         onPress={submit}
         loading={loading}
         style={{ marginTop: spacing.lg }}

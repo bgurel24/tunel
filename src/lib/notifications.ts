@@ -5,6 +5,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
+import { t } from '@/lib/i18n';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -41,7 +42,7 @@ async function ensurePermission(): Promise<boolean> {
 async function ensureAndroidChannel() {
   if (Platform.OS === 'android') {
     await Notifications.setNotificationChannelAsync('default', {
-      name: 'Hatırlatmalar',
+      name: t('notif.channel'),
       importance: Notifications.AndroidImportance.DEFAULT,
     });
   }
@@ -60,12 +61,12 @@ export async function setDailyReminder(
 
   if (enabled) {
     const ok = await ensurePermission();
-    if (!ok) return { error: 'Bildirim izni verilmedi. Ayarlardan açman gerekiyor.' };
+    if (!ok) return { error: t('notif.permission') };
     await ensureAndroidChannel();
     const id = await Notifications.scheduleNotificationAsync({
       content: {
-        title: 'Tünel 💪',
-        body: 'Antrenman zamanı! Bugünkü pump fotonu paylaşmayı unutma.',
+        title: t('notif.pushTitle'),
+        body: t('notif.pushBody'),
       },
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DAILY, hour, minute },
     });
@@ -78,7 +79,7 @@ export async function setDailyReminder(
 
 export async function sendTestNotification(): Promise<{ error: string | null }> {
   const ok = await ensurePermission();
-  if (!ok) return { error: 'Bildirim izni verilmedi.' };
+  if (!ok) return { error: t('notif.permissionShort') };
   await ensureAndroidChannel();
   await Notifications.scheduleNotificationAsync({
     content: { title: 'Tünel test 🔔', body: 'Bildirimler çalışıyor! 🎉' },

@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Logo } from '@/components/Logo';
@@ -14,6 +15,7 @@ import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function LoginScreen() {
   useThemeTick();
+  const t = useT();
   const { signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -24,7 +26,7 @@ export default function LoginScreen() {
   const submit = async () => {
     setError(null);
     if (!email || !password) {
-      setError('E-posta ve şifre gerekli.');
+      setError(t('auth.missingFields'));
       return;
     }
     setLoading(true);
@@ -51,11 +53,11 @@ export default function LoginScreen() {
             <Logo size={140} />
           </View>
 
-          <Text style={styles.heading}>Tekrar hoş geldin</Text>
+          <Text style={styles.heading}>{t('auth.welcomeBack')}</Text>
 
           <View style={styles.form}>
             <Field
-              label="E-posta"
+              label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="ornek@mail.com"
@@ -64,7 +66,7 @@ export default function LoginScreen() {
               autoComplete="email"
             />
             <Field
-              label="Şifre"
+              label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
@@ -74,7 +76,7 @@ export default function LoginScreen() {
             {error && <Text style={styles.error}>{error}</Text>}
 
             <GradientButton
-              label="Giriş yap"
+              label={t('auth.signIn')}
               onPress={submit}
               loading={loading}
               style={{ marginTop: spacing.sm }}
@@ -82,9 +84,9 @@ export default function LoginScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Hesabın yok mu? </Text>
+            <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
             <Link href="/register" style={styles.footerLink}>
-              Kayıt ol
+              {t('auth.signUp')}
             </Link>
           </View>
         </ScrollView>

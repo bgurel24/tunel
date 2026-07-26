@@ -7,6 +7,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View, } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
@@ -34,6 +35,7 @@ const SCOPE_BY_PREF: Record<ShareTarget, 'takim' | 'sosyal' | 'ikisi'> = {
 
 export default function GorevYukleScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { celebrate } = useToast();
   const { configured } = useAuth();
@@ -54,7 +56,7 @@ export default function GorevYukleScreen() {
     setError(null);
     setUri(asset.uri);
     const d = durationLabel(asset.duration);
-    setLabel(d ? `Video · ${d}` : 'Video seçildi');
+    setLabel(d ? `Video · ${d}` : t('proof.selected'));
   };
 
   const pickFromGallery = async () => {
@@ -80,7 +82,7 @@ export default function GorevYukleScreen() {
 
   const submit = async () => {
     if (!uri) {
-      setError('Önce bir video seç veya çek.');
+      setError(t('proof.needVideo'));
       return;
     }
     setError(null);
@@ -96,7 +98,7 @@ export default function GorevYukleScreen() {
     const up = await uploadVideo(uri);
     if (up.error || !up.path) {
       setSubmitting(false);
-      setError(up.error ?? 'Video yüklenemedi.');
+      setError(up.error ?? t('proof.uploadFailed'));
       return;
     }
 
@@ -122,7 +124,7 @@ export default function GorevYukleScreen() {
     }
 
     setSubmitting(false);
-    celebrate(params.taskId ? 'Kanıt gönderildi' : 'Paylaşıldı');
+    celebrate(t(params.taskId ? 'proof.sent' : 'share.done'));
     router.back();
   };
 
@@ -132,14 +134,13 @@ export default function GorevYukleScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Görev kanıtı</Text>
+        <Text style={styles.title}>{t('proof.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <Text style={styles.taskLabel}>{taskLabel}</Text>
       <Text style={styles.lead}>
-        Hareketin videosunu galeriden seçebilir ya da kamerayla çekebilirsin. Canlı çekim
-        zorunlu değil.
+        {t('proof.lead')}
       </Text>
 
       {uri ? (
@@ -149,21 +150,21 @@ export default function GorevYukleScreen() {
           </View>
           <View style={{ flex: 1 }}>
             <Text style={styles.selectedTitle}>{label}</Text>
-            <Text style={styles.selectedSub}>Yüklemeye hazır</Text>
+            <Text style={styles.selectedSub}>{t('proof.ready')}</Text>
           </View>
           <Pressable onPress={pickFromGallery} hitSlop={8}>
-            <Text style={styles.change}>Değiştir</Text>
+            <Text style={styles.change}>{t('proof.change')}</Text>
           </Pressable>
         </View>
       ) : (
         <View style={styles.pickRow}>
           <Pressable style={styles.pickBtn} onPress={pickFromGallery}>
             <Ionicons name="images-outline" size={26} color={colors.accent} />
-            <Text style={styles.pickText}>Galeriden seç</Text>
+            <Text style={styles.pickText}>{t('proof.pickGallery')}</Text>
           </Pressable>
           <Pressable style={styles.pickBtn} onPress={recordVideo}>
             <Ionicons name="videocam-outline" size={26} color={colors.accent} />
-            <Text style={styles.pickText}>Kamerayla çek</Text>
+            <Text style={styles.pickText}>{t('proof.record')}</Text>
           </Pressable>
         </View>
       )}
@@ -173,14 +174,14 @@ export default function GorevYukleScreen() {
           label="Not (opsiyonel)"
           value={note}
           onChangeText={setNote}
-          placeholder="Ağırlık, tekrar, ek bilgi…"
+          placeholder={t('proof.notePlaceholder')}
         />
       </View>
 
       <Pressable style={styles.shareRow} onPress={() => setShareOn((v) => !v)}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.shareTitle}>Feed'e de paylaş</Text>
-          <Text style={styles.shareSub}>Kanıt videon feed'de de görünsün</Text>
+          <Text style={styles.shareTitle}>{t('proof.shareTitle')}</Text>
+          <Text style={styles.shareSub}>{t('proof.shareSub')}</Text>
         </View>
         <View style={[styles.switch, shareOn && styles.switchOn]}>
           <View style={[styles.knob, shareOn && styles.knobOn]} />
@@ -196,7 +197,7 @@ export default function GorevYukleScreen() {
               onPress={() => setShareScope(s)}
             >
               <Text style={[styles.scopeText, shareScope === s && styles.scopeTextActive]}>
-                {s === 'takim' ? 'Takım' : s === 'sosyal' ? 'Sosyal' : 'İkisi'}
+                {t(s === 'takim' ? 'share.team' : s === 'sosyal' ? 'share.social' : 'share.both')}
               </Text>
             </Pressable>
           ))}
@@ -206,7 +207,7 @@ export default function GorevYukleScreen() {
       {error && <Text style={styles.error}>{error}</Text>}
 
       <GradientButton
-        label="Gönder"
+        label={t('proof.send')}
         onPress={submit}
         loading={submitting}
         style={{ marginTop: spacing.xl }}
@@ -215,7 +216,7 @@ export default function GorevYukleScreen() {
       <View style={styles.info}>
         <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
         <Text style={styles.infoText}>
-          Kaptan onayladıktan sonra görev tamamlanır ve takım puanı işlenir.
+          {t('proof.info')}
         </Text>
       </View>
     </Screen>

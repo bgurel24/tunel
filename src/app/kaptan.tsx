@@ -7,6 +7,7 @@ import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
+import { useT, type TranslationKey } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { InlineVideo, useScreenFocused, useVisibleVideo } from '@/components/InlineVideo';
 import { Screen } from '@/components/Screen';
@@ -39,15 +40,19 @@ const CELL: Record<GridStatus, { icon: keyof typeof Ionicons.glyphMap; color: st
   missing: { icon: 'remove', color: colors.textFaint, bg: colors.surface2 },
 };
 
-const DECIDED: Record<'approved' | 'rejected', { color: string; bg: string; label: string }> = {
-  approved: { color: colors.success, bg: colors.successBg, label: 'onaylandı' },
-  rejected: { color: colors.danger, bg: colors.dangerBg, label: 'reddedildi' },
+const DECIDED: Record<
+  'approved' | 'rejected',
+  { color: () => string; bg: () => string; label: TranslationKey }
+> = {
+  approved: { color: () => colors.success, bg: () => colors.successBg, label: 'status.approved' },
+  rejected: { color: () => colors.danger, bg: () => colors.dangerBg, label: 'status.rejected' },
 };
 
 type Tab = 'onaylar' | 'eksikler';
 
 export default function KaptanScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
   const { toast, celebrate } = useToast();
@@ -104,8 +109,8 @@ export default function KaptanScreen() {
   const decide = async (id: string, approve: boolean) => {
     const { error } = await decideSubmission(id, approve);
     if (error) return toast(error, 'error');
-    if (approve) celebrate('Kanıt onaylandı 🎉');
-    else toast('Kanıt reddedildi', 'info');
+    if (approve) celebrate(t('captain.approved'));
+    else toast(t('captain.rejected'), 'info');
     if (selectedId) load(selectedId);
   };
 
@@ -124,9 +129,9 @@ export default function KaptanScreen() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon="shield-outline"
-          title="Burası kaptanlara özel"
-          body="Kaptan olduğun bir takım yok. Kendi takımını kurarsan bu panel açılır."
-          actionLabel="Takımını kur"
+          title={t('captain.noTeamTitle')}
+          body={t('captain.noTeamBody')}
+          actionLabel={t('captain.noTeamAction')}
           onAction={() => router.push('/join-team')}
         />
       ) : (
@@ -154,24 +159,24 @@ export default function KaptanScreen() {
 
               <View style={styles.stats}>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Bekleyen onay</Text>
+                  <Text style={styles.statLabel}>{t('captain.pending')}</Text>
                   <Text style={styles.statValue}>{pendingCount}</Text>
                 </View>
                 <View style={styles.statCard}>
-                  <Text style={styles.statLabel}>Üye</Text>
+                  <Text style={styles.statLabel}>{t('captain.members')}</Text>
                   <Text style={styles.statValue}>{data?.memberCount ?? 0}</Text>
                 </View>
               </View>
 
               <View style={styles.toggle}>
-                {(['onaylar', 'eksikler'] as const).map((t) => (
+                {(['onaylar', 'eksikler'] as const).map((key) => (
                   <Pressable
-                    key={t}
-                    style={[styles.segment, tab === t && styles.segmentActive]}
-                    onPress={() => setTab(t)}
+                    key={key}
+                    style={[styles.segment, tab === key && styles.segmentActive]}
+                    onPress={() => setTab(key)}
                   >
-                    <Text style={[styles.segmentText, tab === t && styles.segmentTextActive]}>
-                      {t === 'onaylar' ? 'Kanıtlar' : 'Eksik takibi'}
+                    <Text style={[styles.segmentText, tab === key && styles.segmentTextActive]}>
+                      {t(key === 'onaylar' ? 'captain.tabProofs' : 'captain.tabMissing')}
                     </Text>
                   </Pressable>
                 ))}
@@ -189,9 +194,9 @@ export default function KaptanScreen() {
                   <Text style={styles.subTask}>{s.taskTitle}</Text>
                 </View>
                 {s.status !== 'pending' && (
-                  <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg }]}>
-                    <Text style={[styles.decidedText, { color: DECIDED[s.status].color }]}>
-                      {DECIDED[s.status].label}
+                  <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg() }]}>
+                    <Text style={[styles.decidedText, { color: DECIDED[s.status].color() }]}>
+                      {t(DECIDED[s.status].label)}
                     </Text>
                   </View>
                 )}
@@ -237,11 +242,11 @@ export default function KaptanScreen() {
             tab === 'eksikler' ? (
               <View>
                 {!data || data.members.length === 0 ? (
-                  <Text style={styles.emptyText}>Üye yok.</Text>
+                  <Text style={styles.emptyText}>{t('captain.noMembers')}</Text>
                 ) : (
                   <>
                     <View style={styles.gridHeadRow}>
-                      <Text style={[styles.gridHeadCell, { flex: 1, textAlign: 'left' }]}>Üye</Text>
+                      <Text style={[styles.gridHeadCell, { flex: 1, textAlign: 'left' }]}>{t('captain.members')}</Text>
                       {data.taskCols.map((c, i) => (
                         <Text key={i} style={styles.gridHeadCell}>
                           {c}
@@ -264,9 +269,9 @@ export default function KaptanScreen() {
                       </View>
                     ))}
                     <View style={styles.legend}>
-                      <Legend icon="checkmark" color={colors.success} label="yaptı" />
-                      <Legend icon="time-outline" color={colors.warning} label="onayda" />
-                      <Legend icon="remove" color={colors.textFaint} label="eksik" />
+                      <Legend icon="checkmark" color={colors.success} label={t('captain.legendDone')} />
+                      <Legend icon="time-outline" color={colors.warning} label={t('captain.legendPending')} />
+                      <Legend icon="remove" color={colors.textFaint} label={t('captain.legendMissing')} />
                     </View>
                   </>
                 )}
@@ -274,7 +279,7 @@ export default function KaptanScreen() {
             ) : submissions.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="videocam-outline" size={40} color={colors.textFaint} />
-                <Text style={styles.emptyText}>Kanıt yok. Takım daha kımıldamadı.</Text>
+                <Text style={styles.emptyText}>{t('captain.noProofs')}</Text>
               </View>
             ) : null
           }

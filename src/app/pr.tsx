@@ -5,6 +5,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -23,6 +24,7 @@ function fmtDate(iso: string) {
 
 export default function PRScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const units = usePref('units');
   const { toast, celebrate, confirm } = useToast();
@@ -41,7 +43,7 @@ export default function PRScreen() {
   const add = async () => {
     const w = parseFloat(weight.replace(',', '.'));
     if (!movement.trim() || isNaN(w) || w <= 0) {
-      toast('Hareket ve kilo gir', 'error');
+      toast(t('pr.needFields'), 'error');
       return;
     }
     setSaving(true);
@@ -50,15 +52,15 @@ export default function PRScreen() {
     if (error) return toast(error, 'error');
     setWeight('');
     setReps('1');
-    celebrate(`${movement} ${w} ${units} — kayıtta`);
+    celebrate(t('pr.saved', { movement, weight: `${w} ${units}` }));
     load();
   };
 
   const remove = async (id: string) => {
     const ok = await confirm({
-      title: 'Kaydı sil',
-      message: 'Bu rekor kaydı listenden kalkacak.',
-      confirmLabel: 'Sil',
+      title: t('pr.deleteTitle'),
+      message: t('pr.deleteMessage'),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
@@ -72,14 +74,14 @@ export default function PRScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Kişisel rekorlar</Text>
+        <Text style={styles.title}>{t('pr.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
         {/* Ekleme formu */}
         <View style={styles.form}>
-          <Text style={styles.formLabel}>Yeni rekor</Text>
+          <Text style={styles.formLabel}>{t('pr.new')}</Text>
           <View style={styles.chips}>
             {PRESETS.map((p) => (
               <Pressable
@@ -94,7 +96,7 @@ export default function PRScreen() {
           <TextInput
             value={movement}
             onChangeText={setMovement}
-            placeholder="Hareket (ör. Squat)"
+            placeholder={t('pr.movementPlaceholder')}
             placeholderTextColor={colors.textFaint}
             style={styles.input}
           />
@@ -102,7 +104,7 @@ export default function PRScreen() {
             <TextInput
               value={weight}
               onChangeText={setWeight}
-              placeholder="Kilo"
+              placeholder={t('pr.weightPlaceholder')}
               placeholderTextColor={colors.textFaint}
               keyboardType="decimal-pad"
               style={[styles.input, { flex: 1 }]}
@@ -110,13 +112,13 @@ export default function PRScreen() {
             <TextInput
               value={reps}
               onChangeText={setReps}
-              placeholder="Tekrar"
+              placeholder={t('pr.repsPlaceholder')}
               placeholderTextColor={colors.textFaint}
               keyboardType="number-pad"
               style={[styles.input, { width: 90 }]}
             />
           </View>
-          <GradientButton label="Ekle" onPress={add} loading={saving} />
+          <GradientButton label={t('pr.add')} onPress={add} loading={saving} />
         </View>
 
         {/* Liste */}
@@ -127,7 +129,7 @@ export default function PRScreen() {
         ) : groups.length === 0 ? (
           <View style={styles.center}>
             <Ionicons name="trophy-outline" size={40} color={colors.textFaint} />
-            <Text style={styles.emptyText}>Henüz rekor yok. İlk PR'ını ekle.</Text>
+            <Text style={styles.emptyText}>{t('pr.empty')}</Text>
           </View>
         ) : (
           groups.map((g) => (
@@ -135,11 +137,11 @@ export default function PRScreen() {
               <View style={styles.cardHead}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.movement}>{g.movement}</Text>
-                  <Text style={styles.cardSub}>{g.entries.length} kayıt</Text>
+                  <Text style={styles.cardSub}>{t('pr.entries', { n: g.entries.length })}</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
                   <Text style={styles.best}>{fmtWeight(g.best, units)}</Text>
-                  {g.gain > 0 && <Text style={styles.gain}>+{fmtWeight(g.gain, units)} ilerleme</Text>}
+                  {g.gain > 0 && <Text style={styles.gain}>{t('pr.gain', { value: fmtWeight(g.gain, units) })}</Text>}
                 </View>
               </View>
 

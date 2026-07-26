@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import { Touchable } from '@/components/Touchable';
 import type { StarterState } from '@/lib/starter';
 import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
@@ -13,8 +14,8 @@ import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } fro
 type Step = {
   key: keyof Omit<StarterState, 'done'>;
   icon: keyof typeof Ionicons.glyphMap;
-  title: string;
-  body: string;
+  title: TranslationKey;
+  body: TranslationKey;
   href: string;
 };
 
@@ -22,40 +23,41 @@ const STEPS: Step[] = [
   {
     key: 'hasTeam',
     icon: 'people',
-    title: 'Takımını kur',
-    body: 'Ya da davet koduyla arkadaşlarının takımına gir',
+    title: 'starter.team.title',
+    body: 'starter.team.body',
     href: '/join-team',
   },
   {
     key: 'hasAvatar',
     icon: 'camera',
-    title: 'Fotoğrafını ekle',
-    body: 'Takımın seni tanısın',
+    title: 'starter.avatar.title',
+    body: 'starter.avatar.body',
     href: '/profil',
   },
   {
     key: 'hasPost',
     icon: 'barbell',
-    title: 'İlk antrenmanını at',
-    body: 'Bir kare çek, seri başlasın',
+    title: 'starter.post.title',
+    body: 'starter.post.body',
     href: '/paylas',
   },
 ];
 
 export function StarterChecklist({ state }: { state: StarterState }) {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const doneCount = STEPS.filter((s) => state[s.key]).length;
 
   return (
     <View style={styles.card}>
       <View style={styles.head}>
-        <Text style={styles.title}>Tünel'e hoş geldin</Text>
+        <Text style={styles.title}>{t('starter.title')}</Text>
         <Text style={styles.progress}>
           {doneCount}/{STEPS.length}
         </Text>
       </View>
-      <Text style={styles.lead}>Üç adım, sonra burası senin takımınla dolacak.</Text>
+      <Text style={styles.lead}>{t('starter.lead')}</Text>
 
       {STEPS.map((step, i) => {
         const done = state[step.key];
@@ -75,8 +77,8 @@ export function StarterChecklist({ state }: { state: StarterState }) {
               />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={[styles.stepTitle, done && styles.stepTitleDone]}>{step.title}</Text>
-              {!done && <Text style={styles.stepBody}>{step.body}</Text>}
+              <Text style={[styles.stepTitle, done && styles.stepTitleDone]}>{t(step.title)}</Text>
+              {!done && <Text style={styles.stepBody}>{t(step.body)}</Text>}
             </View>
             {!done && <Ionicons name="chevron-forward" size={17} color={colors.textFaint} />}
           </Touchable>

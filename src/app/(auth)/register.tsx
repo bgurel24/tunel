@@ -4,6 +4,7 @@ import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Logo } from '@/components/Logo';
@@ -14,6 +15,7 @@ import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function RegisterScreen() {
   useThemeTick();
+  const t = useT();
   const { signUp } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -27,11 +29,11 @@ export default function RegisterScreen() {
     setError(null);
     setNotice(null);
     if (!username || !email || !password) {
-      setError('Tüm alanlar gerekli.');
+      setError(t('auth.allFields'));
       return;
     }
     if (password.length < 6) {
-      setError('Şifre en az 6 karakter olmalı.');
+      setError(t('auth.passwordShort'));
       return;
     }
     setLoading(true);
@@ -42,7 +44,7 @@ export default function RegisterScreen() {
       return;
     }
     // E-posta doğrulaması açıksa oturum hemen gelmez → kullanıcıyı bilgilendir.
-    setNotice('Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa gelen kutunu kontrol et.');
+    setNotice(t('auth.created'));
   };
 
   return (
@@ -59,18 +61,18 @@ export default function RegisterScreen() {
             <Logo size={120} />
           </View>
 
-          <Text style={styles.heading}>Tünel'e katıl</Text>
+          <Text style={styles.heading}>{t('auth.join')}</Text>
 
           <View style={styles.form}>
             <Field
-              label="Kullanıcı adı"
+              label={t('auth.username')}
               value={username}
               onChangeText={setUsername}
-              placeholder="kullanici_adi"
+              placeholder={t('auth.usernamePlaceholder')}
               autoCapitalize="none"
             />
             <Field
-              label="E-posta"
+              label={t('auth.email')}
               value={email}
               onChangeText={setEmail}
               placeholder="ornek@mail.com"
@@ -79,10 +81,10 @@ export default function RegisterScreen() {
               autoComplete="email"
             />
             <Field
-              label="Şifre"
+              label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
-              placeholder="En az 6 karakter"
+              placeholder={t('auth.passwordPlaceholder')}
               secureTextEntry
             />
 
@@ -90,7 +92,7 @@ export default function RegisterScreen() {
             {notice && <Text style={styles.notice}>{notice}</Text>}
 
             <GradientButton
-              label="Kayıt ol"
+              label={t('auth.signUp')}
               onPress={submit}
               loading={loading}
               style={{ marginTop: spacing.sm }}
@@ -98,9 +100,9 @@ export default function RegisterScreen() {
           </View>
 
           <View style={styles.footer}>
-            <Text style={styles.footerText}>Zaten hesabın var mı? </Text>
+            <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <Link href="/login" style={styles.footerLink}>
-              Giriş yap
+              {t('auth.signIn')}
             </Link>
           </View>
         </ScrollView>

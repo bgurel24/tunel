@@ -1,6 +1,7 @@
 // Sosyal etkileşim — beğeni/alkış tepkileri + yorumlar (gerçek Supabase).
 
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export type ReactionKind = 'like' | 'clap';
 
@@ -34,7 +35,7 @@ export async function toggleReaction(
 ): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı.' };
+  if (!uid) return { error: t('err.noSession') };
 
   if (on) {
     const { error } = await supabase
@@ -70,7 +71,7 @@ export async function getComments(postId: string): Promise<Comment[]> {
 export async function addComment(postId: string, body: string): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı.' };
+  if (!uid) return { error: t('err.noSession') };
   const { error } = await supabase
     .from('post_comments')
     .insert({ post_id: postId, user_id: uid, body: body.trim() });

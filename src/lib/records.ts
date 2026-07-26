@@ -1,6 +1,7 @@
 // Kişisel rekorlar (PR) — hareket bazında kilo kaydı + ilerleme.
 
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export type PRRecord = {
   id: string;
@@ -69,7 +70,7 @@ export async function addRecord(
 ): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı.' };
+  if (!uid) return { error: t('err.noSession') };
   const { error } = await supabase.from('personal_records').insert({
     user_id: uid,
     movement: movement.trim(),

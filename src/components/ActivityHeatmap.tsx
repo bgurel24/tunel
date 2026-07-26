@@ -5,10 +5,11 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
+import { useT } from '@/lib/i18n';
 import { colors, fontSize, gradientEnd, gradientStart, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const WEEKS = 5;
-const DAY_LABELS = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
+
 
 function iso(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(
@@ -18,6 +19,7 @@ function iso(d: Date) {
 
 export function ActivityHeatmap({ activeDays }: { activeDays: string[] }) {
   useThemeTick();
+  const t = useT();
   const { cells, todayKey } = useMemo(() => {
     const active = new Set(activeDays);
     const today = new Date();
@@ -41,7 +43,7 @@ export function ActivityHeatmap({ activeDays }: { activeDays: string[] }) {
   return (
     <View style={styles.wrap}>
       <View style={styles.labels}>
-        {DAY_LABELS.map((l, i) => (
+        {t('heatmap.days').split(',').map((l: string, i: number) => (
           <Text key={i} style={styles.label}>
             {l}
           </Text>

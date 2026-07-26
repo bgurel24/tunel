@@ -1,6 +1,7 @@
 // Görev veri katmanı — takım görevleri + kanıt (submission). Gerçek Supabase.
 
 import { supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export type SubmissionStatus = 'none' | 'pending' | 'approved' | 'rejected';
 
@@ -57,7 +58,7 @@ export async function uploadVideo(
 ): Promise<{ path: string | null; error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
-  if (!uid) return { path: null, error: 'Oturum bulunamadı.' };
+  if (!uid) return { path: null, error: t('err.noSession') };
   try {
     const res = await fetch(uri);
     const buf = await res.arrayBuffer();
@@ -80,7 +81,7 @@ export async function submitProof(
 ): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı.' };
+  if (!uid) return { error: t('err.noSession') };
   const { error } = await supabase.from('submissions').upsert(
     { task_id: taskId, user_id: uid, video_path: videoPath, note: note || null, status: 'pending' },
     { onConflict: 'task_id,user_id' }

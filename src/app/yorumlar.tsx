@@ -15,6 +15,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useT } from '@/lib/i18n';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { addComment, getComments, type Comment } from '@/lib/social';
@@ -22,6 +23,7 @@ import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/t
 
 export default function YorumlarScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { postId } = useLocalSearchParams<{ postId?: string }>();
@@ -98,7 +100,7 @@ export default function YorumlarScreen() {
             )}
             ListEmptyComponent={
               <View style={styles.center}>
-                <Text style={styles.empty}>İlk yorumu sen yaz.</Text>
+                <Text style={styles.empty}>{t('comments.empty')}</Text>
               </View>
             }
           />
@@ -114,7 +116,7 @@ export default function YorumlarScreen() {
             multiline
           />
           <Pressable onPress={send} disabled={sending || !text.trim()} hitSlop={8}>
-            <Text style={[styles.send, { opacity: text.trim() ? 1 : 0.4 }]}>Gönder</Text>
+            <Text style={[styles.send, { opacity: text.trim() ? 1 : 0.4 }]}>{t('comments.send')}</Text>
           </Pressable>
         </View>
       </View>

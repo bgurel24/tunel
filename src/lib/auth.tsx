@@ -11,6 +11,7 @@ import {
   type ReactNode,
 } from 'react';
 
+import { t } from '@/lib/i18n';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type AuthResult = { error: string | null };
@@ -30,8 +31,7 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-const NOT_CONFIGURED =
-  'Supabase bağlı değil. .env dosyasına EXPO_PUBLIC_SUPABASE_URL ve EXPO_PUBLIC_SUPABASE_ANON_KEY ekleyin.';
+const NOT_CONFIGURED = () => t('err.notConfiguredLong');
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,7 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       loading,
       configured: isSupabaseConfigured,
       signIn: async (email, password) => {
-        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
+        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
         const { error } = await supabase.auth.signInWithPassword({
           email: email.trim(),
           password,
@@ -69,7 +69,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return { error: error?.message ?? null };
       },
       signUp: async (email, password, username) => {
-        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED };
+        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,

@@ -6,6 +6,7 @@ import { getMyReactions } from '@/lib/social';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
 import type { FeedKind, Post, PostMusic } from '@/lib/types';
+import { t } from '@/lib/i18n';
 
 const DEMO_TEAM: Post[] = [
   {
@@ -143,7 +144,7 @@ export async function createPost(input: NewPost): Promise<{ error: string | null
   if (!isSupabaseConfigured) return { error: null };
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
-  if (!userId) return { error: 'Oturum bulunamadı.' };
+  if (!userId) return { error: t('err.noSession') };
   const teamId = (await myTeamIds())[0] ?? null;
 
   try {
@@ -185,7 +186,7 @@ export async function createVideoPost(
   if (!isSupabaseConfigured) return { error: null };
   const { data: userData } = await supabase.auth.getUser();
   const userId = userData.user?.id;
-  if (!userId) return { error: 'Oturum bulunamadı.' };
+  if (!userId) return { error: t('err.noSession') };
   const { error } = await supabase.from('posts').insert({
     user_id: userId,
     team_id: teamId,

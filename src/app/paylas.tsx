@@ -21,24 +21,16 @@ import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { useT } from '@/lib/i18n';
 import { getPrefs } from '@/lib/prefs';
+import { WORKOUT_TAGS } from '@/lib/workout-tags';
 import { Touchable } from '@/components/Touchable';
 import { createPost } from '@/lib/posts';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
-/** Antrenman etiketleri — paylaşımı "genel sosyal medya" olmaktan çıkarır. */
-const WORKOUT_TAGS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
-  { label: 'Göğüs', icon: 'body-outline' },
-  { label: 'Sırt', icon: 'accessibility-outline' },
-  { label: 'Bacak', icon: 'walk-outline' },
-  { label: 'Omuz', icon: 'barbell-outline' },
-  { label: 'Kol', icon: 'fitness-outline' },
-  { label: 'Kardiyo', icon: 'heart-outline' },
-  { label: 'Full body', icon: 'flame-outline' },
-];
-
 export default function PaylasScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { celebrate } = useToast();
   const [permission, requestPermission] = useCameraPermissions();
@@ -67,7 +59,7 @@ export default function PaylasScreen() {
       setError(error);
       return;
     }
-    celebrate('Paylaşıldı');
+    celebrate(t('share.done'));
     router.back();
   };
 
@@ -87,11 +79,11 @@ export default function PaylasScreen() {
           <Ionicons name="camera-outline" size={48} color={colors.accent} />
           <Text style={styles.permTitle}>Kamera izni gerekli</Text>
           <Text style={styles.permBody}>
-            Tünel anlık paylaşım için kameraya erişir. Galeriden yükleme yok — sadece o an çekim.
+            {t('share.permission')}
           </Text>
-          <GradientButton label="İzin ver" onPress={requestPermission} style={{ alignSelf: 'stretch' }} />
+          <GradientButton label={t('share.allow')} onPress={requestPermission} style={{ alignSelf: 'stretch' }} />
           <Pressable onPress={() => router.back()} hitSlop={8}>
-            <Text style={styles.cancel}>Vazgeç</Text>
+            <Text style={styles.cancel}>{t('common.cancel')}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -111,7 +103,7 @@ export default function PaylasScreen() {
               <Pressable onPress={() => setPhotoUri(null)} hitSlop={12}>
                 <Ionicons name="chevron-back" size={26} color={colors.text} />
               </Pressable>
-              <Text style={styles.headerTitle}>Yeni paylaşım</Text>
+              <Text style={styles.headerTitle}>{t('share.title')}</Text>
               <View style={{ width: 26 }} />
             </View>
 
@@ -119,28 +111,28 @@ export default function PaylasScreen() {
               <Image source={{ uri: photoUri }} style={styles.preview} contentFit="cover" />
               <View style={styles.liveBadge}>
                 <Ionicons name="flash" size={12} color={colors.accent} />
-                <Text style={styles.liveText}>canlı</Text>
+                <Text style={styles.liveText}>{t('share.live')}</Text>
               </View>
             </View>
 
             <View>
-              <Text style={styles.tagLabel}>Ne çalıştın?</Text>
+              <Text style={styles.tagLabel}>{t('share.whatDidYouTrain')}</Text>
               <View style={styles.tagWrap}>
-                {WORKOUT_TAGS.map((t) => {
-                  const active = workoutTag === t.label;
+                {WORKOUT_TAGS.map((tag) => {
+                  const active = workoutTag === tag.value;
                   return (
                     <Touchable
-                      key={t.label}
-                      onPress={() => setWorkoutTag(active ? null : t.label)}
+                      key={tag.value}
+                      onPress={() => setWorkoutTag(active ? null : tag.value)}
                       scaleTo={0.93}
                       style={[styles.tag, active && styles.tagActive]}
                     >
                       <Ionicons
-                        name={t.icon}
+                        name={tag.icon}
                         size={14}
                         color={active ? colors.accent : colors.textDim}
                       />
-                      <Text style={[styles.tagText, active && styles.tagTextActive]}>{t.label}</Text>
+                      <Text style={[styles.tagText, active && styles.tagTextActive]}>{t(tag.key)}</Text>
                     </Touchable>
                   );
                 })}
@@ -148,26 +140,26 @@ export default function PaylasScreen() {
             </View>
 
             <Field
-              label="Açıklama"
+              label={t('share.caption')}
               value={caption}
               onChangeText={setCaption}
-              placeholder="Nasıl geçti?"
+              placeholder={t('share.captionPlaceholder')}
               multiline
               style={{ minHeight: 60, textAlignVertical: 'top' }}
             />
 
             <Pressable style={styles.musicRow}>
               <Ionicons name="musical-notes-outline" size={20} color={colors.accent} />
-              <Text style={styles.musicLabel}>Şarkı ekle</Text>
+              <Text style={styles.musicLabel}>{t('share.music')}</Text>
               <View style={styles.soonPill}>
-                <Text style={styles.soonText}>yakında</Text>
+                <Text style={styles.soonText}>{t('common.soon').toLocaleLowerCase()}</Text>
               </View>
             </Pressable>
 
             <Pressable style={styles.toggleRow} onPress={() => setAddToSocial((v) => !v)}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.toggleTitle}>Feed'e de ekle</Text>
-                <Text style={styles.toggleSub}>Takım dışında sosyal feed'de de görünsün</Text>
+                <Text style={styles.toggleTitle}>{t('proof.shareTitle')}</Text>
+                <Text style={styles.toggleSub}>{t('share.alsoSocialSub')}</Text>
               </View>
               <View style={[styles.switch, addToSocial && styles.switchOn]}>
                 <View style={[styles.knob, addToSocial && styles.knobOn]} />
@@ -177,7 +169,7 @@ export default function PaylasScreen() {
             {error && <Text style={styles.error}>{error}</Text>}
 
             <GradientButton
-              label="Paylaş"
+              label={t('share.cta')}
               onPress={share}
               loading={sharing}
               style={{ marginTop: spacing.sm }}
@@ -199,7 +191,7 @@ export default function PaylasScreen() {
           </Pressable>
           <View style={styles.livePill}>
             <Ionicons name="flash" size={13} color={colors.accent} />
-            <Text style={styles.livePillText}>anlık · galeri kapalı</Text>
+            <Text style={styles.livePillText}>{t('share.livePill')}</Text>
           </View>
           <View style={{ width: 40 }} />
         </View>

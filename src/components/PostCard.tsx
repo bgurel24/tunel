@@ -20,6 +20,8 @@ import Animated, {
 import { Avatar } from '@/components/Avatar';
 import { useInlineVideo } from '@/components/InlineVideo';
 import { Text } from '@/components/Text';
+import { useT } from '@/lib/i18n';
+import { tagKeyOf } from '@/lib/workout-tags';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
 import { avatarGradient } from '@/lib/avatar';
@@ -52,6 +54,7 @@ export function PostCard({
   onDeleted?: () => void;
 }) {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { session } = useAuth();
   const { toast, confirm } = useToast();
@@ -83,8 +86,8 @@ export function PostCard({
 
   const confirmDelete = async () => {
     const ok = await confirm({
-      title: 'Paylaşımı sil',
-      message: 'Bu paylaşım ve altındaki her şey gider. Geri dönüşü yok.',
+      title: t('post.deleteTitle'),
+      message: t('post.deleteMessage'),
       confirmLabel: 'Sil',
       destructive: true,
     });
@@ -92,7 +95,7 @@ export function PostCard({
     const { error } = await deletePost(post.id);
     if (error) toast(error, 'error');
     else {
-      toast('Paylaşım silindi', 'info');
+      toast(t('post.deleted'), 'info');
       onDeleted?.();
     }
   };
@@ -163,7 +166,9 @@ export function PostCard({
             <Text style={styles.username}>{post.username}</Text>
             {post.workoutTag ? (
               <View style={styles.tag}>
-                <Text style={styles.tagText}>{post.workoutTag}</Text>
+                <Text style={styles.tagText}>
+                  {tagKeyOf(post.workoutTag) ? t(tagKeyOf(post.workoutTag)!) : post.workoutTag}
+                </Text>
               </View>
             ) : null}
           </View>
@@ -181,7 +186,7 @@ export function PostCard({
             style={[styles.streak, shadow.glowSoft]}
           >
             <Ionicons name="flame" size={12} color="#fff" />
-            <Text style={styles.streakText}>{post.streakWeeks} hafta</Text>
+            <Text style={styles.streakText}>{t('post.weeks', { n: post.streakWeeks })}</Text>
           </LinearGradient>
         ) : null}
       </View>
@@ -237,7 +242,7 @@ export function PostCard({
         {post.isLive && (
           <View style={styles.liveBadge}>
             <View style={styles.liveDot} />
-            <Text style={styles.liveText}>canlı</Text>
+            <Text style={styles.liveText}>{t('share.live')}</Text>
           </View>
         )}
 
@@ -294,7 +299,9 @@ export function PostCard({
 
       <Pressable onPress={openComments}>
         <Text style={styles.commentHint}>
-          {post.commentCount > 0 ? `${post.commentCount} yorumun tümünü gör` : 'Yorum ekle…'}
+          {post.commentCount > 0
+            ? t('post.allComments', { n: post.commentCount })
+            : t('post.addComment')}
         </Text>
       </Pressable>
     </View>

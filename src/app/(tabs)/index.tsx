@@ -22,21 +22,18 @@ import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
 import { getCrew, type CrewMember } from '@/lib/crew';
+import { useT } from '@/lib/i18n';
 import { getFeed } from '@/lib/posts';
 import { getActiveSessions, type GymSession } from '@/lib/sessions';
 import { getStarterState, type StarterState } from '@/lib/starter';
 import type { FeedKind, Post } from '@/lib/types';
 import { colors, font, fontSize, makeStyles, radius, spacing, themeInfo, useThemeTick } from '@/theme';
 
-const FEEDS = [
-  { key: 'takim' as const, label: 'Takım' },
-  { key: 'sosyal' as const, label: 'Sosyal' },
-];
-
 const HEADER_HEIGHT = 52;
 
 export default function FeedScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = useTabBarPadding();
@@ -117,14 +114,21 @@ export default function FeedScreen() {
             <Ionicons name="flash" size={17} color={colors.accent} />
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.callTitle}>Bugün gym var mı?</Text>
-            <Text style={styles.callSub}>Takımı çağır, gelen gelsin</Text>
+            <Text style={styles.callTitle}>{t('feed.callTitle')}</Text>
+            <Text style={styles.callSub}>{t('feed.callSub')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
         </Touchable>
       )}
 
-      <Segmented options={FEEDS} value={feed} onChange={switchFeed} />
+      <Segmented
+        options={[
+          { key: 'takim' as const, label: t('share.team') },
+          { key: 'sosyal' as const, label: t('share.social') },
+        ]}
+        value={feed}
+        onChange={switchFeed}
+      />
       <View style={{ height: spacing.lg }} />
     </View>
   );
@@ -166,13 +170,9 @@ export default function FeedScreen() {
           ) : (
             <EmptyState
               icon={feed === 'takim' ? 'barbell-outline' : 'planet-outline'}
-              title={feed === 'takim' ? 'Takım sessiz' : 'Ortalık sakin'}
-              body={
-                feed === 'takim'
-                  ? 'Takım arkadaşların pump attıkça burası dolacak. İlk hamleyi sen yap.'
-                  : 'Sosyal akışta kimse yok. Paylaşımını sosyale açarsan seni burada görürler.'
-              }
-              actionLabel="Bir kare at"
+              title={t(feed === 'takim' ? 'feed.emptyTeamTitle' : 'feed.emptySocialTitle')}
+              body={t(feed === 'takim' ? 'feed.emptyTeamBody' : 'feed.emptySocialBody')}
+              actionLabel={t('feed.emptyAction')}
               onAction={() => router.push('/paylas')}
             />
           )
@@ -188,7 +188,7 @@ export default function FeedScreen() {
           <View style={{ flex: 1 }} />
           <Touchable onPress={() => router.push('/cagri')} hitSlop={10} scaleTo={0.88} style={styles.headerCall}>
             <Ionicons name="flash" size={16} color={colors.accent} />
-            <Text style={styles.headerCallText}>Çağır</Text>
+            <Text style={styles.headerCallText}>{t('feed.call')}</Text>
           </Touchable>
           <Pressable onPress={() => router.push('/bildirimler')} hitSlop={10}>
             <Ionicons name="notifications-outline" size={22} color={colors.textDim} />

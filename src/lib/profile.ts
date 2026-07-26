@@ -4,6 +4,7 @@
 import * as ImagePicker from 'expo-image-picker';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
+import { t } from '@/lib/i18n';
 
 export type MyProfile = {
   id: string;
@@ -53,7 +54,7 @@ export async function uploadAvatar(
 ): Promise<{ error: string | null; avatarUrl?: string }> {
   const { data: userData } = await supabase.auth.getUser();
   const uid = userData.user?.id;
-  if (!uid) return { error: 'Oturum bulunamadı' };
+  if (!uid) return { error: t('err.noSession') };
 
   try {
     const res = await fetch(uri);

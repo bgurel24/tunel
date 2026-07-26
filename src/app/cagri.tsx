@@ -6,6 +6,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
@@ -20,15 +21,16 @@ import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } fro
 
 /** Hazır zaman seçenekleri — dakika cinsinden. */
 const WHEN = [
-  { minutes: 0, label: 'Şu an' },
-  { minutes: 30, label: 'Yarım saate' },
-  { minutes: 60, label: '1 saate' },
-  { minutes: 120, label: '2 saate' },
-  { minutes: 180, label: '3 saate' },
+  { minutes: 0, labelKey: 'call.now' as const },
+  { minutes: 30, labelKey: 'call.in30' as const },
+  { minutes: 60, labelKey: 'call.in1h' as const },
+  { minutes: 120, labelKey: 'call.in2h' as const },
+  { minutes: 180, labelKey: 'call.in3h' as const },
 ];
 
 export default function CagriScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { celebrate, toast } = useToast();
 
@@ -54,7 +56,7 @@ export default function CagriScreen() {
     const { error } = await createSession({ teamId, startsAt, gym, note });
     setSending(false);
     if (error) return toast(error, 'error');
-    celebrate('Çağrı yapıldı, takım görüyor');
+    celebrate(t('call.sent'));
     router.back();
   };
 
@@ -64,7 +66,7 @@ export default function CagriScreen() {
         <Touchable onPress={() => router.back()} hitSlop={12} haptic={false} scaleTo={0.9}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Touchable>
-        <Text style={styles.title}>Antrenmana çağır</Text>
+        <Text style={styles.title}>{t('call.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -72,9 +74,9 @@ export default function CagriScreen() {
         <View style={{ paddingHorizontal: spacing.xl }}>
           <EmptyState
             icon="people-outline"
-            title="Önce bir takım lazım"
-            body="Çağrı takım arkadaşlarına gider. Takım kur ya da davet koduyla birine katıl."
-            actionLabel="Takıma katıl / kur"
+            title={t('call.noTeamTitle')}
+            body={t('call.noTeamBody')}
+            actionLabel={t('tasks.noTeamAction')}
             onAction={() => router.replace('/join-team')}
           />
         </View>
@@ -86,12 +88,12 @@ export default function CagriScreen() {
           automaticallyAdjustKeyboardInsets
         >
           <Text style={styles.lead}>
-            Gym'e gidiyorsun. Haber ver, gelen gelsin.
+            {t('call.lead')}
           </Text>
 
           {teams && teams.length > 1 && (
             <>
-              <Text style={styles.label}>Hangi takım</Text>
+              <Text style={styles.label}>{t('call.whichTeam')}</Text>
               <View style={styles.chipWrap}>
                 {teams.map((t) => (
                   <Touchable
@@ -109,7 +111,7 @@ export default function CagriScreen() {
             </>
           )}
 
-          <Text style={styles.label}>Ne zaman</Text>
+          <Text style={styles.label}>{t('call.when')}</Text>
           <View style={styles.chipWrap}>
             {WHEN.map((w) => (
               <Touchable
@@ -119,7 +121,7 @@ export default function CagriScreen() {
                 style={[styles.chip, minutes === w.minutes && styles.chipActive]}
               >
                 <Text style={[styles.chipText, minutes === w.minutes && styles.chipTextActive]}>
-                  {w.label}
+                  {t(w.labelKey)}
                 </Text>
               </Touchable>
             ))}
@@ -128,26 +130,27 @@ export default function CagriScreen() {
           <View style={styles.preview}>
             <Ionicons name="time-outline" size={16} color={colors.accent} />
             <Text style={styles.previewText}>
-              Antrenman saati: <Text style={styles.previewStrong}>{clockLabel(startsAt.toISOString())}</Text>
+              {t('call.sessionTime')}{' '}
+              <Text style={styles.previewStrong}>{clockLabel(startsAt.toISOString())}</Text>
             </Text>
           </View>
 
           <Field
-            label="Nerede"
+            label={t('call.where')}
             value={gym}
             onChangeText={setGym}
-            placeholder="ör. Ana gym"
+            placeholder={t('call.wherePlaceholder')}
           />
 
           <Field
-            label="Not (isteğe bağlı)"
+            label={t('call.note')}
             value={note}
             onChangeText={setNote}
-            placeholder="ör. bacak günü, ağır olacak"
+            placeholder={t('call.notePlaceholder')}
           />
 
           <GradientButton
-            label="Çağrıyı gönder"
+            label={t('call.send')}
             onPress={submit}
             loading={sending}
             disabled={!teamId}
@@ -155,7 +158,7 @@ export default function CagriScreen() {
           />
 
           <Text style={styles.foot}>
-            Çağrın takım feed'inin en üstünde görünür. Herkes geliyorum ya da yokum diyebilir.
+            {t('call.info')}
           </Text>
         </ScrollView>
       )}

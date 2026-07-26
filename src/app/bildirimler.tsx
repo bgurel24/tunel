@@ -5,6 +5,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, StyleSheet, View, } from 'react-native';
 
+import { useT } from '@/lib/i18n';
 import { OutlineButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -16,6 +17,7 @@ const HOURS = [8, 12, 18, 21];
 
 export default function BildirimlerScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { toast } = useToast();
   const [enabled, setEnabled] = useState(false);
@@ -42,13 +44,13 @@ export default function BildirimlerScreen() {
     }
     setEnabled(nextEnabled);
     setHour(nextHour);
-    toast(nextEnabled ? 'Hatırlatma kuruldu' : 'Hatırlatma kapatıldı', nextEnabled ? 'success' : 'info');
+    toast(t(nextEnabled ? 'notif.on' : 'notif.off'), nextEnabled ? 'success' : 'info');
   };
 
   const test = async () => {
     const { error } = await sendTestNotification();
     if (error) toast(error, 'error');
-    else toast('Test bildirimi 2 saniyeye gelecek', 'info');
+    else toast(t('notif.testSent'), 'info');
   };
 
   if (loading) {
@@ -67,14 +69,14 @@ export default function BildirimlerScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Bildirimler</Text>
+        <Text style={styles.title}>{t('settings.notifications')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
       <Pressable style={styles.row} onPress={() => apply(!enabled, hour)} disabled={busy}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.rowTitle}>Günlük antrenman hatırlatması</Text>
-          <Text style={styles.rowSub}>Her gün seçtiğin saatte "pump fotonu paylaş" hatırlatması</Text>
+          <Text style={styles.rowTitle}>{t('notif.dailyTitle')}</Text>
+          <Text style={styles.rowSub}>{t('notif.dailySub')}</Text>
         </View>
         <View style={[styles.switch, enabled && styles.switchOn]}>
           <View style={[styles.knob, enabled && styles.knobOn]} />
@@ -83,7 +85,7 @@ export default function BildirimlerScreen() {
 
       {enabled && (
         <>
-          <Text style={styles.label}>Saat</Text>
+          <Text style={styles.label}>{t('notif.hour')}</Text>
           <View style={styles.chips}>
             {HOURS.map((h) => (
               <Pressable
@@ -102,14 +104,13 @@ export default function BildirimlerScreen() {
       )}
 
       <View style={{ marginTop: spacing.xl }}>
-        <OutlineButton label="Test bildirimi gönder" onPress={test} />
+        <OutlineButton label={t('notif.test')} onPress={test} />
       </View>
 
       <View style={styles.info}>
         <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
         <Text style={styles.infoText}>
-          Bu hatırlatmalar telefonunda yerel olarak çalışır. "Biri postunu beğendi" gibi
-          sunucudan gelen bildirimler için ileride uygulamanın derlenmiş sürümü gerekir.
+          {t('notif.info')}
         </Text>
       </View>
     </Screen>

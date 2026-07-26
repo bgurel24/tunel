@@ -8,6 +8,7 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
+import { useT } from '@/lib/i18n';
 import { avatarGradient } from '@/lib/avatar';
 import type { CrewMember } from '@/lib/crew';
 import {
@@ -32,6 +33,7 @@ function initialsOf(username: string) {
 
 export function CrewStrip({ crew }: { crew: CrewMember[] }) {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   if (crew.length === 0) return null;
 
@@ -40,9 +42,9 @@ export function CrewStrip({ crew }: { crew: CrewMember[] }) {
   return (
     <Animated.View entering={FadeIn.duration(300)} style={styles.wrap}>
       <View style={styles.headerRow}>
-        <Text style={styles.title}>Ekip</Text>
+        <Text style={styles.title}>{t('crew.title')}</Text>
         <Text style={styles.count}>
-          {activeCount > 0 ? `bugün ${activeCount} kişi antrenmanda` : 'bugün ilk sen ol'}
+          {activeCount > 0 ? t('crew.active', { n: activeCount }) : t('crew.beFirst')}
         </Text>
       </View>
 

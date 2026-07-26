@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
+import { useT, type TranslationKey } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { OutlineButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
@@ -24,14 +25,34 @@ import {
 import { getMyTeams, type MyTeam } from '@/lib/teams';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
-const STATUS: Record<Exclude<SubmissionStatus, 'none'>, { color: string; bg: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  approved: { color: colors.success, bg: colors.successBg, label: 'onaylandı', icon: 'checkmark' },
-  pending: { color: colors.warning, bg: colors.warningBg, label: 'bekliyor', icon: 'time-outline' },
-  rejected: { color: colors.danger, bg: colors.dangerBg, label: 'reddedildi', icon: 'close' },
+// Renkler render anında okunur (tema değişebilir), etiket çeviri anahtarı.
+const STATUS: Record<
+  Exclude<SubmissionStatus, 'none'>,
+  { color: () => string; bg: () => string; label: TranslationKey; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  approved: {
+    color: () => colors.success,
+    bg: () => colors.successBg,
+    label: 'status.approved',
+    icon: 'checkmark',
+  },
+  pending: {
+    color: () => colors.warning,
+    bg: () => colors.warningBg,
+    label: 'status.pending',
+    icon: 'time-outline',
+  },
+  rejected: {
+    color: () => colors.danger,
+    bg: () => colors.dangerBg,
+    label: 'status.rejected',
+    icon: 'close',
+  },
 };
 
 export default function GorevlerScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const bottomPad = useTabBarPadding();
   const { toast, confirm } = useToast();
@@ -100,22 +121,22 @@ export default function GorevlerScreen() {
     setAdding(false);
     if (error) return toast(error, 'error');
     setNewTitle('');
-    toast('Görev eklendi');
+    toast(t('tasks.added'));
     await loadTasks(selectedTeam.id);
   };
 
   const removeTask = async (task: TeamTask) => {
     const ok = await confirm({
-      title: 'Görevi sil',
-      message: `"${task.title}" listeden kalkacak. Yüklenen kanıtlar da gider.`,
-      confirmLabel: 'Sil',
+      title: t('tasks.deleteTitle'),
+      message: t('tasks.deleteMessage', { title: task.title }),
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
     const { error } = await deleteTask(task.id);
     if (error) toast(error, 'error');
     else if (selectedTeam) {
-      toast('Görev silindi', 'info');
+      toast(t('tasks.deleted'), 'info');
       loadTasks(selectedTeam.id);
     }
   };
@@ -127,7 +148,7 @@ export default function GorevlerScreen() {
   if (loading) {
     return (
       <Screen edges={['top']}>
-        <Text style={styles.title}>Görevler</Text>
+        <Text style={styles.title}>{t('tasks.title')}</Text>
         <View style={{ gap: spacing.lg, marginTop: spacing.lg }}>
           <Skeleton height={54} rounded={radius.lg} />
           <ListSkeleton count={4} height={78} />
@@ -139,12 +160,12 @@ export default function GorevlerScreen() {
   if (teams.length === 0) {
     return (
       <Screen edges={['top']}>
-        <Text style={styles.title}>Görevler</Text>
+        <Text style={styles.title}>{t('tasks.title')}</Text>
         <EmptyState
           icon="people-outline"
-          title="Takımsız görev olmaz"
-          body="Bir takıma gir ya da kendi takımını kur — görevler ve puanlar orada başlıyor."
-          actionLabel="Takıma katıl / kur"
+          title={t('tasks.noTeamTitle')}
+          body={t('tasks.noTeamBody')}
+          actionLabel={t('tasks.noTeamAction')}
           onAction={() => router.push('/join-team')}
         />
       </Screen>
@@ -160,7 +181,7 @@ export default function GorevlerScreen() {
         automaticallyAdjustKeyboardInsets
       >
         <View style={styles.header}>
-          <Text style={styles.title}>Görevler</Text>
+          <Text style={styles.title}>{t('tasks.title')}</Text>
           <View style={styles.headerActions}>
             {isCaptain && (
               <Pressable
@@ -197,13 +218,13 @@ export default function GorevlerScreen() {
 
         <Text style={styles.subtitle}>
           {selectedTeam?.name}
-          {isCaptain ? ' · Kaptan' : ''}
+          {isCaptain ? ` · ${t('profile.captain')}` : ''}
         </Text>
 
         {total > 0 && (
           <>
             <View style={styles.progressRow}>
-              <Text style={styles.progressLabel}>İlerleme</Text>
+              <Text style={styles.progressLabel}>{t('tasks.progress')}</Text>
               <Text style={styles.progressValue}>
                 {approved} / {total}
               </Text>
@@ -220,7 +241,7 @@ export default function GorevlerScreen() {
               <TextInput
                 value={newTitle}
                 onChangeText={setNewTitle}
-                placeholder="ör. Squat videosu"
+                placeholder={t('tasks.addPlaceholder')}
                 placeholderTextColor={colors.textFaint}
                 style={styles.addInput}
                 autoFocus
@@ -236,14 +257,14 @@ export default function GorevlerScreen() {
                 )}
               </Pressable>
             </View>
-            <Text style={styles.addHint}>Ekle'ye bastıkça liste büyür, klavye açık kalır.</Text>
+            <Text style={styles.addHint}>{t('tasks.addHint')}</Text>
           </View>
         )}
 
         {tasks.length === 0 ? (
           <View style={styles.noTasks}>
             <Text style={styles.emptyBody}>
-              {isCaptain ? 'Henüz görev yok. Yukarıdaki + ile ekle.' : 'Kaptan henüz görev eklemedi.'}
+              {t(isCaptain ? 'tasks.emptyCaptain' : 'tasks.emptyMember')}
             </Text>
           </View>
         ) : (
@@ -254,7 +275,7 @@ export default function GorevlerScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskSub}>{task.points} puan</Text>
+                <Text style={styles.taskSub}>{t('tasks.points', { n: task.points })}</Text>
               </View>
 
               {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
@@ -265,12 +286,14 @@ export default function GorevlerScreen() {
                   }
                 >
                   <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                  <Text style={styles.uploadText}>{task.myStatus === 'rejected' ? 'Tekrar' : 'Yükle'}</Text>
+                  <Text style={styles.uploadText}>
+                    {t(task.myStatus === 'rejected' ? 'tasks.retry' : 'tasks.upload')}
+                  </Text>
                 </Pressable>
               ) : (
-                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
-                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
-                    {STATUS[task.myStatus].label}
+                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg() }]}>
+                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color() }]}>
+                    {t(STATUS[task.myStatus].label)}
                   </Text>
                 </View>
               )}
@@ -286,7 +309,7 @@ export default function GorevlerScreen() {
 
         {isCaptain && (
           <OutlineButton
-            label="Kaptan paneli (onaylar)"
+            label={t('tasks.captainPanel')}
             onPress={() => router.push({ pathname: '/kaptan', params: { teamId: selectedTeam?.id ?? '' } })}
             style={{ marginTop: spacing.lg }}
           />
@@ -294,7 +317,7 @@ export default function GorevlerScreen() {
 
         <View style={styles.info}>
           <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
-          <Text style={styles.infoText}>Takım puanı yalnızca onaylı görevlerden gelir.</Text>
+          <Text style={styles.infoText}>{t('tasks.info')}</Text>
         </View>
       </ScrollView>
     </Screen>

@@ -8,6 +8,7 @@ import { useCallback, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
+import { useT } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
@@ -33,8 +34,8 @@ import {
 } from '@/theme';
 
 const KINDS = [
-  { key: 'takim' as const, label: 'Takım' },
-  { key: 'bireysel' as const, label: 'Bireysel' },
+  { key: 'takim' as const, labelKey: 'share.team' as const },
+  { key: 'bireysel' as const, labelKey: 'leader.individual' as const },
 ];
 
 // Podyum sırası: 2. solda, 1. ortada (en yüksek), 3. sağda.
@@ -49,6 +50,7 @@ function initialsOf(name: string) {
 
 export default function LiderlikScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
 
@@ -103,11 +105,15 @@ export default function LiderlikScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Liderlik</Text>
+        <Text style={styles.title}>{t('leader.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
-      <Segmented options={KINDS} value={kind} onChange={switchKind} />
+      <Segmented
+        options={KINDS.map((k) => ({ key: k.key, label: t(k.labelKey) }))}
+        value={kind}
+        onChange={switchKind}
+      />
 
       {kind === 'bireysel' && teams.length > 1 && (
         <ScrollView
@@ -130,7 +136,7 @@ export default function LiderlikScreen() {
         </ScrollView>
       )}
 
-      {kind === 'bireysel' && teamName && <Text style={styles.context}>{teamName} · bireysel</Text>}
+      {kind === 'bireysel' && teamName && <Text style={styles.context}>{t('leader.context', { team: teamName })}</Text>}
 
       {!rows ? (
         <View style={{ marginTop: spacing.xl }}>
@@ -139,8 +145,8 @@ export default function LiderlikScreen() {
       ) : rows.length === 0 ? (
         <EmptyState
           icon="trophy-outline"
-          title="Sıralama henüz boş"
-          body="Görev tamamlandıkça ve paylaşım yapıldıkça puanlar burada birikecek."
+          title={t('leader.emptyTitle')}
+          body={t('leader.emptyBody')}
         />
       ) : (
         <ScrollView
@@ -224,7 +230,7 @@ export default function LiderlikScreen() {
           <View style={styles.note}>
             <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
             <Text style={styles.noteText}>
-              Ödüller uygulama dışında verilir · rozetler tanıma amaçlıdır.
+              {t('leader.note')}
             </Text>
           </View>
         </ScrollView>
@@ -246,7 +252,7 @@ export default function LiderlikScreen() {
               <Text style={styles.rowInitials}>{initialsOf(me.name)}</Text>
             </LinearGradient>
             <Text style={[styles.name, styles.textMe]} numberOfLines={1}>
-              {me.name} (sen)
+              {me.name} ({t('leader.you')})
             </Text>
             <Text style={[styles.points, styles.textMe]}>{me.points}p</Text>
           </View>

@@ -8,6 +8,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View, } from 'react-native';
 import { PostCard } from '@/components/PostCard';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { useT } from '@/lib/i18n';
 import { getUserPosts } from '@/lib/posts';
 import { getUserRecords, type MovementGroup } from '@/lib/records';
 import { getUserStats, type MyStats } from '@/lib/stats';
@@ -17,6 +18,7 @@ import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/t
 
 export default function KullaniciScreen() {
   useThemeTick();
+  const t = useT();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [username, setUsername] = useState('');
@@ -36,7 +38,7 @@ export default function KullaniciScreen() {
         getUserPosts(id),
       ]);
       if (!active) return;
-      setUsername((prof.data as any)?.username ?? 'kullanıcı');
+      setUsername((prof.data as any)?.username ?? t('user.fallbackName'));
       setStats(s);
       setRecords(r);
       setPosts(p);
@@ -77,7 +79,7 @@ export default function KullaniciScreen() {
                   <Ionicons name="flame" size={16} color={colors.accent} />
                   <Text style={styles.statNum}>{stats.currentStreak}</Text>
                 </View>
-                <Text style={styles.statLabel}>gün seri</Text>
+                <Text style={styles.statLabel}>{t('profile.streak')}</Text>
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNum}>{stats.longestStreak}</Text>
@@ -85,7 +87,7 @@ export default function KullaniciScreen() {
               </View>
               <View style={styles.statBox}>
                 <Text style={styles.statNum}>{stats.totalPosts}</Text>
-                <Text style={styles.statLabel}>paylaşım</Text>
+                <Text style={styles.statLabel}>{t('profile.posts')}</Text>
               </View>
             </View>
           )}
@@ -95,7 +97,7 @@ export default function KullaniciScreen() {
               {stats.badges.map((b, i) => (
                 <View key={i} style={styles.badge}>
                   <Ionicons name={b.icon as any} size={13} color={colors.accent} />
-                  <Text style={styles.badgeText}>{b.label}</Text>
+                  <Text style={styles.badgeText}>{t(b.key)}</Text>
                 </View>
               ))}
             </View>
@@ -116,9 +118,9 @@ export default function KullaniciScreen() {
           )}
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Paylaşımlar</Text>
+            <Text style={styles.sectionTitle}>{t('user.posts')}</Text>
             {posts.length === 0 ? (
-              <Text style={styles.empty}>Henüz paylaşım yok.</Text>
+              <Text style={styles.empty}>{t('user.noPosts')}</Text>
             ) : (
               posts.map((p) => <PostCard key={p.id} post={p} />)
             )}
