@@ -1,4 +1,4 @@
-// Takım işlemleri — takımlarım / katıl / oluştur / sil.
+// Takım işlemleri — takımlarım / katıl / oluştur / sil / ayrıl / yönet.
 
 import { supabase } from '@/lib/supabase';
 
@@ -52,4 +52,31 @@ export async function createTeam(
   if (error) return { error: error.message };
   const row = Array.isArray(data) ? data[0] : data;
   return { error: null, inviteCode: row?.invite_code as string | undefined };
+}
+
+/**
+ * Takımdan ayrılır. Kaptansan kaptanlık en eski üyeye geçer; takımdaki tek
+ * kişiysen sunucu hata döner (ayrılmak yerine takımı silmen gerekir).
+ */
+export async function leaveTeam(teamId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('leave_team', { p_team_id: teamId });
+  return { error: error?.message ?? null };
+}
+
+/** Davet kodunu yeniler (yalnızca kaptan) — eski kod geçersiz olur. */
+export async function regenerateInviteCode(
+  teamId: string
+): Promise<{ error: string | null; inviteCode?: string }> {
+  const { data, error } = await supabase.rpc('regenerate_invite_code', { p_team_id: teamId });
+  if (error) return { error: error.message };
+  return { error: null, inviteCode: (data as string) ?? undefined };
+}
+
+/** Takım adını değiştirir (yalnızca kaptan). */
+export async function renameTeam(teamId: string, name: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('rename_team', {
+    p_team_id: teamId,
+    p_name: name.trim(),
+  });
+  return { error: error?.message ?? null };
 }

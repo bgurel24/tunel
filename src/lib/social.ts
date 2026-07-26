@@ -1,5 +1,6 @@
 // Sosyal etkileşim — beğeni/alkış tepkileri + yorumlar (gerçek Supabase).
 
+import { getHiddenUserIds } from '@/lib/moderation';
 import { supabase } from '@/lib/supabase';
 import { t } from '@/lib/i18n';
 
@@ -52,18 +53,25 @@ export async function toggleReaction(
   return { error: error?.message ?? null };
 }
 
-export type Comment = { id: string; username: string; body: string };
+export type Comment = { id: string; userId: string; username: string; body: string };
 
 export async function getComments(postId: string): Promise<Comment[]> {
-  const { data, error } = await supabase
+  const query = supabase
     .from('post_comments')
-    .select('id, body, profiles!post_comments_user_id_fkey(username)')
+    .select('id, body, user_id, profiles!post_comments_user_id_fkey(username)')
     .eq('post_id', postId)
     .order('created_at', { ascending: true });
+
+  // Engelli kullanıcıların yorumları görünmez.
+  const hidden = await getHiddenUserIds();
+  if (hidden.length) query.not('user_id', 'in', `(${hidden.join(',')})`);
+
+  const { data, error } = await query;
   if (error || !data) return [];
   return (data as any[]).map((c) => ({
     id: String(c.id),
-    username: c.profiles?.username ?? 'kullanıcı',
+    userId: c.user_id as string,
+    username: c.profiles?.username ?? t('user.fallbackName'),
     body: c.body,
   }));
 }

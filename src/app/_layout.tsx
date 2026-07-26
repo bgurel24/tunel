@@ -78,6 +78,8 @@ export default function RootLayout() {
                 <Stack.Screen name="kullanici" />
                 <Stack.Screen name="bildirimler" />
                 <Stack.Screen name="ayarlar" />
+                <Stack.Screen name="engellenenler" />
+                <Stack.Screen name="yasal" />
                 <Stack.Screen name="cagri" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="paylas" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="yorumlar" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />

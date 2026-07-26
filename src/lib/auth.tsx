@@ -12,6 +12,7 @@ import {
 } from 'react';
 
 import { t } from '@/lib/i18n';
+import { clearHiddenCache } from '@/lib/moderation';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 type AuthResult = { error: string | null };
@@ -50,6 +51,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => {
       setSession(next);
+      // Kullanıcı değişti — engel listesi önbelleği bir öncekine ait olmasın.
+      clearHiddenCache();
     });
 
     return () => sub.subscription.unsubscribe();

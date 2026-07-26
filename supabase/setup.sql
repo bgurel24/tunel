@@ -418,9 +418,21 @@ create table if not exists public.personal_records (
 );
 create index if not exists pr_user_idx on public.personal_records (user_id, movement, achieved_at desc);
 alter table public.personal_records enable row level security;
-create policy "pr okunur" on public.personal_records for select using (true);
-create policy "kendi pr ekler" on public.personal_records for insert with check (auth.uid() = user_id);
-create policy "kendi pr siler" on public.personal_records for delete using (auth.uid() = user_id);
+
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'personal_records' and policyname = 'pr okunur') then
+    create policy "pr okunur" on public.personal_records for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'personal_records' and policyname = 'kendi pr ekler') then
+    create policy "kendi pr ekler" on public.personal_records for insert with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'personal_records' and policyname = 'kendi pr siler') then
+    create policy "kendi pr siler" on public.personal_records for delete using (auth.uid() = user_id);
+  end if;
+end $$;
 
 grant select on public.personal_records to anon, authenticated;
 grant insert, update, delete on public.personal_records to authenticated;
@@ -451,3 +463,178 @@ end;
 $$;
 
 grant execute on function public.delete_my_account() to authenticated;
+
+-- ============================================================
+-- Güvenlik & topluluk turu (engelle, şikayet, gizli profil, takım yönetimi)
+-- ============================================================
+
+-- ========== profiles: gizli profil ==========
+-- true iken paylaşımları ve rekorları yalnızca takım arkadaşları görür.
+alter table public.profiles add column if not exists is_private boolean not null default false;
+
+-- Bu profili görebilir miyim? kendisi · açık profil · takım arkadaşı
+create or replace function public.can_view_profile(p_target uuid)
+returns boolean language sql stable security definer set search_path = public as $$
+  select
+    p_target = auth.uid()
+    or not coalesce((select p.is_private from public.profiles p where p.id = p_target), false)
+    or exists (
+      select 1
+      from public.team_members a
+      join public.team_members b on b.team_id = a.team_id
+      where a.user_id = auth.uid() and b.user_id = p_target
+    );
+$$;
+
+grant execute on function public.can_view_profile(uuid) to anon, authenticated;
+
+-- Paylaşım ve rekor okumasını gizliliğe bağla.
+-- "drop policy" yerine "alter policy" — Supabase yıkıcı işlem uyarısı çıkmasın.
+do $$
+begin
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'posts' and policyname = 'posts okunur') then
+    execute 'alter policy "posts okunur" on public.posts using (public.can_view_profile(user_id))';
+  else
+    execute 'create policy "posts okunur" on public.posts for select using (public.can_view_profile(user_id))';
+  end if;
+
+  if exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'personal_records' and policyname = 'pr okunur') then
+    execute 'alter policy "pr okunur" on public.personal_records using (public.can_view_profile(user_id))';
+  else
+    execute 'create policy "pr okunur" on public.personal_records for select using (public.can_view_profile(user_id))';
+  end if;
+end $$;
+
+-- ========== blocked_users (engellenenler) ==========
+create table if not exists public.blocked_users (
+  blocker_id uuid not null references public.profiles (id) on delete cascade,
+  blocked_id uuid not null references public.profiles (id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (blocker_id, blocked_id),
+  check (blocker_id <> blocked_id)
+);
+alter table public.blocked_users enable row level security;
+
+-- ========== reports (şikayetler) ==========
+-- post_id doluysa paylaşım şikayeti, boşsa kullanıcı şikayeti.
+create table if not exists public.reports (
+  id uuid primary key default gen_random_uuid(),
+  reporter_id uuid not null references public.profiles (id) on delete cascade,
+  post_id uuid references public.posts (id) on delete cascade,
+  reported_user_id uuid references public.profiles (id) on delete cascade,
+  reason text not null,
+  note text,
+  created_at timestamptz not null default now()
+);
+create index if not exists reports_created_idx on public.reports (created_at desc);
+alter table public.reports enable row level security;
+
+do $$
+begin
+  -- Engellemeler: iki taraf da satırı görür (karşılıklı gizleme için).
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'blocked_users' and policyname = 'engelleri gorur') then
+    create policy "engelleri gorur" on public.blocked_users for select
+      using (auth.uid() = blocker_id or auth.uid() = blocked_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'blocked_users' and policyname = 'kendi engelini ekler') then
+    create policy "kendi engelini ekler" on public.blocked_users for insert
+      with check (auth.uid() = blocker_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'blocked_users' and policyname = 'kendi engelini kaldirir') then
+    create policy "kendi engelini kaldirir" on public.blocked_users for delete
+      using (auth.uid() = blocker_id);
+  end if;
+
+  -- Şikayetler: yalnızca kendi bildirimlerini görür/yazar.
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'reports' and policyname = 'kendi sikayetini gorur') then
+    create policy "kendi sikayetini gorur" on public.reports for select using (auth.uid() = reporter_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'reports' and policyname = 'kendi sikayetini yazar') then
+    create policy "kendi sikayetini yazar" on public.reports for insert with check (auth.uid() = reporter_id);
+  end if;
+end $$;
+
+grant select on public.blocked_users, public.reports to authenticated;
+grant insert, delete on public.blocked_users to authenticated;
+grant insert on public.reports to authenticated;
+
+-- ========== RPC: takımdan ayrıl ==========
+-- Kaptan ayrılırsa kaptanlık en eski üyeye geçer; tek kişiyse takımı silmesi gerekir.
+create or replace function public.leave_team(p_team_id uuid)
+returns void language plpgsql security definer set search_path = public as $$
+declare
+  v_role text;
+  v_next uuid;
+begin
+  select role into v_role from public.team_members
+   where team_id = p_team_id and user_id = auth.uid();
+  if v_role is null then
+    raise exception 'Bu takımda değilsin';
+  end if;
+
+  if v_role = 'captain' then
+    select user_id into v_next from public.team_members
+     where team_id = p_team_id and user_id <> auth.uid()
+     order by joined_at
+     limit 1;
+
+    if v_next is null then
+      raise exception 'Takımdaki tek kişi sensin — ayrılmak yerine takımı sil';
+    end if;
+
+    update public.team_members set role = 'captain'
+     where team_id = p_team_id and user_id = v_next;
+    update public.teams set captain_id = v_next where id = p_team_id;
+  end if;
+
+  delete from public.team_members where team_id = p_team_id and user_id = auth.uid();
+end; $$;
+
+-- ========== RPC: davet kodunu yenile (yalnızca kaptan) ==========
+create or replace function public.regenerate_invite_code(p_team_id uuid)
+returns text language plpgsql security definer set search_path = public as $$
+declare v_code text;
+begin
+  if not exists (select 1 from public.teams where id = p_team_id and captain_id = auth.uid()) then
+    raise exception 'Bu takımın kaptanı değilsin';
+  end if;
+
+  loop
+    v_code := upper(substr(md5(random()::text), 1, 6));
+    exit when not exists (select 1 from public.teams t where t.invite_code = v_code);
+  end loop;
+
+  update public.teams set invite_code = v_code where id = p_team_id;
+  return v_code;
+end; $$;
+
+-- ========== RPC: takım adını değiştir (yalnızca kaptan) ==========
+create or replace function public.rename_team(p_team_id uuid, p_name text)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if trim(coalesce(p_name, '')) = '' then
+    raise exception 'Takım adı boş olamaz';
+  end if;
+
+  if not exists (select 1 from public.teams where id = p_team_id and captain_id = auth.uid()) then
+    raise exception 'Bu takımın kaptanı değilsin';
+  end if;
+
+  if exists (
+    select 1 from public.teams t
+    where t.captain_id = auth.uid()
+      and t.id <> p_team_id
+      and lower(t.name) = lower(trim(p_name))
+  ) then
+    raise exception 'Bu isimde bir takımın zaten var';
+  end if;
+
+  update public.teams set name = trim(p_name) where id = p_team_id;
+end; $$;
+
+grant execute on function public.leave_team(uuid) to authenticated;
+grant execute on function public.regenerate_invite_code(uuid) to authenticated;
+grant execute on function public.rename_team(uuid, text) to authenticated;

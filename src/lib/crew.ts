@@ -1,5 +1,6 @@
 // Akış üstündeki "ekip şeridi" verisi — takım arkadaşların ve bugün antrenman yapanlar.
 
+import { getHiddenUserIds } from '@/lib/moderation';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type CrewMember = {
@@ -32,9 +33,11 @@ export async function getCrew(): Promise<CrewMember[]> {
     .in('team_id', teamIds);
   if (!rows?.length) return [];
 
-  // Aynı kişi birden çok takımda olabilir — tekilleştir.
+  // Aynı kişi birden çok takımda olabilir — tekilleştir. Engelliler şeritte yok.
+  const hidden = new Set(await getHiddenUserIds());
   const byId = new Map<string, string>();
   for (const r of rows as any[]) {
+    if (hidden.has(r.user_id)) continue;
     if (!byId.has(r.user_id)) byId.set(r.user_id, r.profiles?.username ?? 'kullanıcı');
   }
 

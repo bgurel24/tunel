@@ -8,7 +8,7 @@ import Constants from 'expo-constants';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ActivityIndicator,
   Linking,
@@ -30,6 +30,7 @@ import { deleteMyAccount, updatePassword, updateUsername } from '@/lib/account';
 import { useAuth } from '@/lib/auth';
 import { Haptics } from '@/lib/haptics';
 import { useT, type TranslationKey } from '@/lib/i18n';
+import { getMyProfile, setProfilePrivacy } from '@/lib/profile';
 import { resetPrefs, setPref, usePrefs } from '@/lib/prefs';
 import {
   ACCENTS,
@@ -61,6 +62,23 @@ export default function AyarlarScreen() {
   const [editing, setEditing] = useState<'username' | 'password' | null>(null);
   const [draft, setDraft] = useState('');
   const [busy, setBusy] = useState(false);
+  // Gizli profil sunucuda duruyor (profiles.is_private), tercihlerde değil.
+  const [isPrivate, setIsPrivate] = useState(false);
+
+  useEffect(() => {
+    getMyProfile().then((p) => setIsPrivate(!!p?.isPrivate));
+  }, []);
+
+  const togglePrivate = async () => {
+    const next = !isPrivate;
+    setIsPrivate(next);
+    const { error } = await setProfilePrivacy(next);
+    if (error) {
+      setIsPrivate(!next);
+      return toast(error, 'error');
+    }
+    toast(t(next ? 'settings.privateProfileOn' : 'settings.privateProfileOff'), 'info');
+  };
 
   const username = (session?.user?.user_metadata?.username as string | undefined) ?? '—';
   const version = Constants.expoConfig?.version ?? '1.0.0';
@@ -299,8 +317,26 @@ export default function AyarlarScreen() {
           />
         </Section>
 
+        {/* Gizlilik */}
+        <Section title={t('settings.privacy')} delay={200}>
+          <ToggleRow
+            icon="lock-closed-outline"
+            title={t('settings.privateProfile')}
+            subtitle={t('settings.privateProfileHint')}
+            value={isPrivate}
+            onToggle={togglePrivate}
+          />
+          <Divider />
+          <Row
+            icon="ban-outline"
+            title={t('settings.blocked')}
+            subtitle={t('settings.blockedHint')}
+            onPress={() => router.push('/engellenenler')}
+          />
+        </Section>
+
         {/* His */}
-        <Section title={t('settings.feedbackSection')} delay={200}>
+        <Section title={t('settings.feedbackSection')} delay={240}>
           <ToggleRow
             icon="pulse-outline"
             title={t('settings.haptics')}
@@ -322,7 +358,7 @@ export default function AyarlarScreen() {
         </Section>
 
         {/* Hesap */}
-        <Section title={t('settings.account')} delay={240}>
+        <Section title={t('settings.account')} delay={280}>
           {!configured && (
             <>
               <View style={styles.warn}>
@@ -389,7 +425,7 @@ export default function AyarlarScreen() {
         </Section>
 
         {/* Uygulama */}
-        <Section title={t('settings.app')} delay={280}>
+        <Section title={t('settings.app')} delay={320}>
           <Row icon="gift-outline" title={t('settings.invite')} onPress={invite} />
           <Divider />
           <Row
@@ -406,6 +442,23 @@ export default function AyarlarScreen() {
           />
           <Divider />
           <Row icon="reload-outline" title={t('settings.reset')} onPress={askReset} />
+        </Section>
+
+        {/* Yasal */}
+        <Section title={t('settings.legal')} delay={360}>
+          <Row
+            icon="shield-checkmark-outline"
+            title={t('legal.privacy')}
+            subtitle={t('settings.legalHint')}
+            onPress={() => router.push({ pathname: '/yasal', params: { doc: 'privacy' } })}
+          />
+          <Divider />
+          <Row
+            icon="document-text-outline"
+            title={t('legal.terms')}
+            subtitle={t('settings.legalHint')}
+            onPress={() => router.push({ pathname: '/yasal', params: { doc: 'terms' } })}
+          />
         </Section>
 
         <View style={styles.footer}>

@@ -10,6 +10,17 @@ export type MyProfile = {
   id: string;
   username: string;
   avatarUrl: string | null;
+  /** Gizli profil: paylaşımları ve rekorları yalnızca takım arkadaşları görür. */
+  isPrivate: boolean;
+};
+
+export type PublicProfile = {
+  id: string;
+  username: string;
+  avatarUrl: string | null;
+  isPrivate: boolean;
+  /** Gizliyse ve takım arkadaşı değilsem false — ekran kilitli gösterilir. */
+  canView: boolean;
 };
 
 /** Depolama yolunu herkese açık URL'ye çevirir. */
@@ -26,12 +37,47 @@ export async function getMyProfile(): Promise<MyProfile | null> {
 
   const { data } = await supabase
     .from('profiles')
-    .select('id, username, avatar_path')
+    .select('id, username, avatar_path, is_private')
     .eq('id', uid)
     .single();
 
   if (!data) return null;
-  return { id: data.id, username: data.username, avatarUrl: avatarUrlFrom(data.avatar_path) };
+  return {
+    id: data.id,
+    username: data.username,
+    avatarUrl: avatarUrlFrom(data.avatar_path),
+    isPrivate: !!(data as any).is_private,
+  };
+}
+
+/** Başka bir kullanıcının profil başlığı + görme iznim. */
+export async function getPublicProfile(userId: string): Promise<PublicProfile | null> {
+  if (!isSupabaseConfigured) return null;
+
+  const [{ data }, { data: allowed }] = await Promise.all([
+    supabase.from('profiles').select('id, username, avatar_path, is_private').eq('id', userId).maybeSingle(),
+    supabase.rpc('can_view_profile', { p_target: userId }),
+  ]);
+
+  if (!data) return null;
+  return {
+    id: data.id,
+    username: data.username,
+    avatarUrl: avatarUrlFrom(data.avatar_path),
+    isPrivate: !!(data as any).is_private,
+    canView: allowed !== false,
+  };
+}
+
+/** Gizli profil ayarını değiştirir. */
+export async function setProfilePrivacy(isPrivate: boolean): Promise<{ error: string | null }> {
+  if (!isSupabaseConfigured) return { error: t('err.notConfigured') };
+  const { data: userData } = await supabase.auth.getUser();
+  const uid = userData.user?.id;
+  if (!uid) return { error: t('err.noSession') };
+
+  const { error } = await supabase.from('profiles').update({ is_private: isPrivate }).eq('id', uid);
+  return { error: error?.message ?? null };
 }
 
 /** Galeriden kare bir fotoğraf seçtirir. İptal edilirse null döner. */

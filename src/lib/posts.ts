@@ -1,6 +1,7 @@
 // Feed veri katmanı — Supabase bağlıysa oradan, değilse demo veriden okur.
 
 
+import { getHiddenUserIds } from '@/lib/moderation';
 import { avatarUrlFrom } from '@/lib/profile';
 import { getMyReactions } from '@/lib/social';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
@@ -108,6 +109,10 @@ export async function getFeed(kind: FeedKind): Promise<Post[]> {
     if (!ids.length) return [];
     query.in('team_id', ids);
   }
+
+  // Engellediklerim ve beni engelleyenler akışta görünmez.
+  const hidden = await getHiddenUserIds();
+  if (hidden.length) query.not('user_id', 'in', `(${hidden.join(',')})`);
 
   const { data, error } = await query;
   if (error || !data) return [];

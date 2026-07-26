@@ -99,6 +99,21 @@ export default function RegisterScreen() {
             />
           </View>
 
+          {/* Mağaza şartı: kullanıcı üretimli içerik uygulamalarında şartların
+              kayıt anında görünmesi gerekiyor. */}
+          <View style={styles.legal}>
+            <Text style={styles.legalNote}>{t('auth.legalNote')}</Text>
+            <View style={styles.legalLinks}>
+              <Link href={{ pathname: '/yasal', params: { doc: 'terms' } }} style={styles.legalLink}>
+                {t('legal.terms')}
+              </Link>
+              <Text style={styles.legalNote}>·</Text>
+              <Link href={{ pathname: '/yasal', params: { doc: 'privacy' } }} style={styles.legalLink}>
+                {t('legal.privacy')}
+              </Link>
+            </View>
+          </View>
+
           <View style={styles.footer}>
             <Text style={styles.footerText}>{t('auth.haveAccount')}</Text>
             <Link href="/login" style={styles.footerLink}>
@@ -140,6 +155,26 @@ const styles = makeStyles((colors) => ({
     fontSize: fontSize.sm,
     marginLeft: 2,
     lineHeight: 18,
+  },
+  legal: {
+    alignItems: 'center',
+    gap: 4,
+  },
+  legalNote: {
+    color: colors.textFaint,
+    fontSize: fontSize.xs,
+    textAlign: 'center',
+  },
+  legalLinks: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+  },
+  legalLink: {
+    color: colors.textDim,
+    fontSize: fontSize.xs,
+    fontWeight: '500',
+    textDecorationLine: 'underline',
   },
   footer: {
     flexDirection: 'row',

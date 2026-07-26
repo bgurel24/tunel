@@ -20,6 +20,7 @@ import Animated, {
 import { Avatar } from '@/components/Avatar';
 import { useInlineVideo } from '@/components/InlineVideo';
 import { Text } from '@/components/Text';
+import { useModeration } from '@/components/useModeration';
 import { useT } from '@/lib/i18n';
 import { tagKeyOf } from '@/lib/workout-tags';
 import { useToast } from '@/components/Toast';
@@ -51,13 +52,15 @@ export function PostCard({
   post: Post;
   /** Kart görünür alanda ve ekran odakta mı — false ise video durur, sesi kapanır. */
   active?: boolean;
+  /** Kart listeden düştüğünde (silindi ya da yazarı engellendi) tazeleme. */
   onDeleted?: () => void;
 }) {
   useThemeTick();
   const t = useT();
   const router = useRouter();
   const { session } = useAuth();
-  const { toast, confirm } = useToast();
+  const { toast, confirm, menu } = useToast();
+  const { reportPostFlow, blockUserFlow } = useModeration();
   const { width: screenW } = useWindowDimensions();
   const [aspect, setAspect] = useState(1); // en/boy; 0.8 (4:5) ile 1.91 arası sınırlanır
   const [liked, setLiked] = useState(post.myLiked);
@@ -88,7 +91,7 @@ export function PostCard({
     const ok = await confirm({
       title: t('post.deleteTitle'),
       message: t('post.deleteMessage'),
-      confirmLabel: 'Sil',
+      confirmLabel: t('common.delete'),
       destructive: true,
     });
     if (!ok) return;
@@ -97,6 +100,31 @@ export function PostCard({
     else {
       toast(t('post.deleted'), 'info');
       onDeleted?.();
+    }
+  };
+
+  // "…" — kendi postumda sil, başkasınınkinde şikayet et / engelle.
+  const openMenu = async () => {
+    if (isMine) {
+      const choice = await menu({
+        title: post.username,
+        options: [{ key: 'delete', label: t('post.deleteTitle'), icon: 'trash-outline', destructive: true }],
+      });
+      if (choice === 'delete') confirmDelete();
+      return;
+    }
+
+    const choice = await menu({
+      title: post.username,
+      options: [
+        { key: 'report', label: t('report.post'), icon: 'flag-outline' },
+        { key: 'block', label: t('block.user'), icon: 'ban-outline', destructive: true },
+      ],
+    });
+    if (choice === 'report') await reportPostFlow(post.id, post.authorId || null);
+    if (choice === 'block' && post.authorId) {
+      const blocked = await blockUserFlow(post.authorId, post.username);
+      if (blocked) onDeleted?.();
     }
   };
 
@@ -174,11 +202,7 @@ export function PostCard({
           </View>
           <Text style={styles.sub}>{[post.gym, post.timeLabel].filter(Boolean).join(' · ')}</Text>
         </Pressable>
-        {isMine ? (
-          <Pressable onPress={confirmDelete} hitSlop={8}>
-            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textDim} />
-          </Pressable>
-        ) : post.streakWeeks ? (
+        {!isMine && post.streakWeeks ? (
           <LinearGradient
             colors={gradientColors}
             start={gradientStart}
@@ -188,6 +212,12 @@ export function PostCard({
             <Ionicons name="flame" size={12} color="#fff" />
             <Text style={styles.streakText}>{t('post.weeks', { n: post.streakWeeks })}</Text>
           </LinearGradient>
+        ) : null}
+
+        {post.authorId ? (
+          <Pressable onPress={openMenu} hitSlop={8}>
+            <Ionicons name="ellipsis-horizontal" size={20} color={colors.textDim} />
+          </Pressable>
         ) : null}
       </View>
 

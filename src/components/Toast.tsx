@@ -1,8 +1,9 @@
-// Uygulama geneli geri bildirim: üstten inen toast, kutlama konfetisi ve
-// onay alt sayfası. Kök layout'ta <FeedbackProvider>, ekranlarda useToast().
+// Uygulama geneli geri bildirim: üstten inen toast, kutlama konfetisi, onay
+// alt sayfası, seçenek menüsü ve metin sorma. Kök layout'ta <FeedbackProvider>,
+// ekranlarda useToast().
 //
 // confirm() sistem Alert.alert'inin yerine geçer: iOS'un gri kutusu uygulamayı
-// "şablondan yapılmış" gösteriyordu.
+// "şablondan yapılmış" gösteriyordu. menu() aynı şeyi ActionSheet için yapar.
 
 import { Ionicons } from '@expo/vector-icons';
 import { Haptics } from '@/lib/haptics';
@@ -16,7 +17,7 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Keyboard, Platform, Pressable, StyleSheet, TextInput, useWindowDimensions, View } from 'react-native';
 import Animated, {
   Easing,
   FadeIn,
@@ -62,16 +63,46 @@ export type ConfirmOptions = {
   icon?: keyof typeof Ionicons.glyphMap;
 };
 
+export type MenuOption = {
+  key: string;
+  label: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  /** Kırmızı satır — silme / engelleme gibi sert işlemler. */
+  destructive?: boolean;
+};
+
+export type MenuOptions = {
+  title?: string;
+  message?: string;
+  options: MenuOption[];
+};
+
+export type PromptOptions = {
+  title: string;
+  message?: string;
+  placeholder?: string;
+  initialValue?: string;
+  confirmLabel?: string;
+  icon?: keyof typeof Ionicons.glyphMap;
+  autoCapitalize?: 'none' | 'sentences' | 'words';
+};
+
 type Ctx = {
   toast: (text: string, kind?: ToastKind) => void;
   celebrate: (text?: string) => void;
   confirm: (options: ConfirmOptions) => Promise<boolean>;
+  /** Seçenek listesi açar; seçilen anahtarı, kapatılırsa null döner. */
+  menu: (options: MenuOptions) => Promise<string | null>;
+  /** Tek satırlık metin sorar; yazılan değeri, vazgeçilirse null döner. */
+  prompt: (options: PromptOptions) => Promise<string | null>;
 };
 
 const FeedbackContext = createContext<Ctx>({
   toast: () => {},
   celebrate: () => {},
   confirm: async () => false,
+  menu: async () => null,
+  prompt: async () => null,
 });
 
 export function useToast() {
@@ -100,6 +131,12 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   const [sheet, setSheet] = useState<(ConfirmOptions & { resolve: (ok: boolean) => void }) | null>(
     null
   );
+  const [menuSheet, setMenuSheet] = useState<
+    (MenuOptions & { resolve: (key: string | null) => void }) | null
+  >(null);
+  const [promptSheet, setPromptSheet] = useState<
+    (PromptOptions & { resolve: (value: string | null) => void }) | null
+  >(null);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const toast = useCallback((text: string, kind: ToastKind = 'success') => {
@@ -135,9 +172,39 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
     [sheet]
   );
 
+  const menu = useCallback((options: MenuOptions) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    return new Promise<string | null>((resolve) => setMenuSheet({ ...options, resolve }));
+  }, []);
+
+  const closeMenu = useCallback(
+    (key: string | null) => {
+      menuSheet?.resolve(key);
+      setMenuSheet(null);
+    },
+    [menuSheet]
+  );
+
+  const prompt = useCallback((options: PromptOptions) => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    return new Promise<string | null>((resolve) => setPromptSheet({ ...options, resolve }));
+  }, []);
+
+  const closePrompt = useCallback(
+    (value: string | null) => {
+      Keyboard.dismiss();
+      promptSheet?.resolve(value);
+      setPromptSheet(null);
+    },
+    [promptSheet]
+  );
+
   useEffect(() => () => { if (timer.current) clearTimeout(timer.current); }, []);
 
-  const value = useMemo(() => ({ toast, celebrate, confirm }), [toast, celebrate, confirm]);
+  const value = useMemo(
+    () => ({ toast, celebrate, confirm, menu, prompt }),
+    [toast, celebrate, confirm, menu, prompt]
+  );
 
   return (
     <FeedbackContext.Provider value={value}>
@@ -214,7 +281,150 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
           </Animated.View>
         </View>
       )}
+
+      {menuSheet && (
+        <View style={StyleSheet.absoluteFill}>
+          <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
+            <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={() => closeMenu(null)} />
+          </Animated.View>
+
+          <Animated.View
+            entering={SlideInDown.springify().damping(20).stiffness(180)}
+            exiting={SlideOutDown.duration(180)}
+            style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }, shadow.raised]}
+          >
+            <View style={styles.grabber} />
+
+            {menuSheet.title ? <Text style={styles.menuTitle}>{menuSheet.title}</Text> : null}
+            {menuSheet.message ? <Text style={styles.sheetMessage}>{menuSheet.message}</Text> : null}
+
+            <View style={styles.menuList}>
+              {menuSheet.options.map((option, i) => (
+                <Touchable
+                  key={option.key}
+                  style={[styles.menuRow, i > 0 && styles.menuRowDivider]}
+                  onPress={() => closeMenu(option.key)}
+                  scaleTo={0.98}
+                >
+                  {option.icon ? (
+                    <View
+                      style={[
+                        styles.menuIcon,
+                        { backgroundColor: option.destructive ? colors.dangerBg : colors.accentBg },
+                      ]}
+                    >
+                      <Ionicons
+                        name={option.icon}
+                        size={17}
+                        color={option.destructive ? colors.danger : colors.accent}
+                      />
+                    </View>
+                  ) : null}
+                  <Text
+                    style={[styles.menuLabel, option.destructive && { color: colors.danger }]}
+                    numberOfLines={2}
+                  >
+                    {option.label}
+                  </Text>
+                </Touchable>
+              ))}
+            </View>
+
+            <Touchable style={styles.sheetCancel} onPress={() => closeMenu(null)} scaleTo={0.97} haptic={false}>
+              <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+            </Touchable>
+          </Animated.View>
+        </View>
+      )}
+
+      {promptSheet && <PromptSheet key="prompt" options={promptSheet} onClose={closePrompt} />}
     </FeedbackContext.Provider>
+  );
+}
+
+/** Metin soran alt sayfa — klavye açılınca yukarı kayar. */
+function PromptSheet({
+  options,
+  onClose,
+}: {
+  options: PromptOptions;
+  onClose: (value: string | null) => void;
+}) {
+  const t = useT();
+  const insets = useSafeAreaInsets();
+  const [value, setValue] = useState(options.initialValue ?? '');
+  const [kbHeight, setKbHeight] = useState(0);
+
+  useEffect(() => {
+    const showEvt = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvt = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const show = Keyboard.addListener(showEvt, (e) => setKbHeight(e.endCoordinates.height));
+    const hide = Keyboard.addListener(hideEvt, () => setKbHeight(0));
+    return () => {
+      show.remove();
+      hide.remove();
+    };
+  }, []);
+
+  const submit = () => {
+    const next = value.trim();
+    if (!next) return;
+    onClose(next);
+  };
+
+  return (
+    <View style={StyleSheet.absoluteFill}>
+      <Animated.View entering={FadeIn.duration(180)} exiting={FadeOut.duration(160)} style={StyleSheet.absoluteFill}>
+        <Pressable style={[StyleSheet.absoluteFill, styles.backdrop]} onPress={() => onClose(null)} />
+      </Animated.View>
+
+      <Animated.View
+        entering={SlideInDown.springify().damping(20).stiffness(180)}
+        exiting={SlideOutDown.duration(180)}
+        style={[
+          styles.sheet,
+          { bottom: kbHeight, paddingBottom: (kbHeight ? spacing.lg : insets.bottom + spacing.lg) },
+          shadow.raised,
+        ]}
+      >
+        <View style={styles.grabber} />
+
+        <View style={[styles.sheetIcon, { backgroundColor: colors.accentBg }]}>
+          <Ionicons name={options.icon ?? 'create-outline'} size={24} color={colors.accent} />
+        </View>
+
+        <Text style={styles.sheetTitle}>{options.title}</Text>
+        {options.message ? <Text style={styles.sheetMessage}>{options.message}</Text> : null}
+
+        <TextInput
+          value={value}
+          onChangeText={setValue}
+          placeholder={options.placeholder}
+          placeholderTextColor={colors.textFaint}
+          style={styles.promptInput}
+          autoCapitalize={options.autoCapitalize ?? 'sentences'}
+          autoCorrect={false}
+          autoFocus
+          returnKeyType="done"
+          onSubmitEditing={submit}
+        />
+
+        <Touchable style={styles.sheetPrimary} onPress={submit} scaleTo={0.97}>
+          <LinearGradient
+            colors={gradientColors}
+            start={gradientStart}
+            end={gradientEnd}
+            style={[styles.sheetPrimaryFill, !value.trim() && { opacity: 0.5 }]}
+          >
+            <Text style={styles.sheetPrimaryText}>{options.confirmLabel ?? t('common.save')}</Text>
+          </LinearGradient>
+        </Touchable>
+
+        <Touchable style={styles.sheetCancel} onPress={() => onClose(null)} scaleTo={0.97} haptic={false}>
+          <Text style={styles.sheetCancelText}>{t('common.cancel')}</Text>
+        </Touchable>
+      </Animated.View>
+    </View>
   );
 }
 
@@ -361,6 +571,52 @@ const styles = makeStyles((colors) => ({
     marginTop: spacing.sm,
     paddingHorizontal: spacing.md,
   },
+  menuTitle: {
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontFamily: font.display,
+    textAlign: 'center',
+  },
+  menuList: {
+    alignSelf: 'stretch',
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    overflow: 'hidden',
+  },
+  menuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 14,
+  },
+  menuRowDivider: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: colors.lineSoft },
+  menuIcon: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.sm,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  menuLabel: { flex: 1, color: colors.text, fontSize: fontSize.md, fontWeight: '500' },
+
+  promptInput: {
+    alignSelf: 'stretch',
+    marginTop: spacing.lg,
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 13,
+    color: colors.text,
+    fontSize: fontSize.md,
+    fontFamily: font.body,
+  },
+
   sheetPrimary: { alignSelf: 'stretch', marginTop: spacing.xl },
   sheetPrimaryFill: { alignItems: 'center', paddingVertical: 15, borderRadius: radius.md },
   sheetPrimaryText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },

@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -22,7 +22,14 @@ import { useAuth } from '@/lib/auth';
 import { useT } from '@/lib/i18n';
 import { getMyProfile, pickAvatarImage, uploadAvatar } from '@/lib/profile';
 import { getMyStats, type MyStats } from '@/lib/stats';
-import { deleteTeam, getMyTeams, type MyTeam } from '@/lib/teams';
+import {
+  deleteTeam,
+  getMyTeams,
+  leaveTeam,
+  regenerateInviteCode,
+  renameTeam,
+  type MyTeam,
+} from '@/lib/teams';
 import {
   colors,
   font,
@@ -45,7 +52,7 @@ export default function ProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = useTabBarPadding();
-  const { toast, confirm } = useToast();
+  const { toast, confirm, menu, prompt } = useToast();
 
   const [teams, setTeams] = useState<MyTeam[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,6 +93,90 @@ export default function ProfilScreen() {
       toast(t('profile.teamDeleted', { name: team.name }), 'info');
       load();
     }
+  };
+
+  const askRename = async (team: MyTeam) => {
+    const name = await prompt({
+      title: t('team.rename'),
+      placeholder: t('team.namePlaceholder'),
+      initialValue: team.name,
+      confirmLabel: t('common.save'),
+      icon: 'create-outline',
+    });
+    if (!name || name === team.name) return;
+    const { error } = await renameTeam(team.id, name);
+    if (error) return toast(error, 'error');
+    toast(t('team.renamed', { name }));
+    load();
+  };
+
+  const askNewCode = async (team: MyTeam) => {
+    const ok = await confirm({
+      title: t('team.newCodeTitle'),
+      message: t('team.newCodeMessage'),
+      confirmLabel: t('team.newCode'),
+      icon: 'refresh-outline',
+    });
+    if (!ok) return;
+    const { error, inviteCode } = await regenerateInviteCode(team.id);
+    if (error) return toast(error, 'error');
+    toast(t('team.newCodeDone', { code: inviteCode ?? '' }));
+    load();
+  };
+
+  const shareCode = (team: MyTeam) => {
+    Share.share({
+      message: t('team.shareText', { name: team.name, code: team.inviteCode }),
+    }).catch(() => {});
+  };
+
+  const askLeave = async (team: MyTeam) => {
+    const ok = await confirm({
+      title: t('team.leaveTitle', { name: team.name }),
+      message: t(team.role === 'captain' ? 'team.leaveCaptainMessage' : 'team.leaveMessage'),
+      confirmLabel: t('team.leave'),
+      destructive: true,
+      icon: 'exit-outline',
+    });
+    if (!ok) return;
+    const { error } = await leaveTeam(team.id);
+    if (error) return toast(error, 'error');
+    toast(t('team.left', { name: team.name }), 'info');
+    load();
+  };
+
+  const openTeamMenu = async (team: MyTeam) => {
+    const captain = team.role === 'captain';
+    const choice = await menu({
+      title: team.name,
+      message: `${t('profile.code')}: ${team.inviteCode}`,
+      options: [
+        { key: 'share', label: t('team.shareCode'), icon: 'share-outline' },
+        ...(captain
+          ? [
+              { key: 'rename', label: t('team.rename'), icon: 'create-outline' as const },
+              { key: 'code', label: t('team.newCode'), icon: 'refresh-outline' as const },
+            ]
+          : []),
+        { key: 'leave', label: t('team.leave'), icon: 'exit-outline', destructive: true },
+        ...(captain
+          ? [
+              {
+                key: 'delete',
+                label: t('profile.deleteTeam'),
+                icon: 'trash-outline' as const,
+                destructive: true,
+              },
+            ]
+          : []),
+      ],
+    });
+
+    if (choice === 'share') shareCode(team);
+    if (choice === 'rename') askRename(team);
+    if (choice === 'code') askNewCode(team);
+    if (choice === 'leave') askLeave(team);
+    if (choice === 'delete') confirmDelete(team);
   };
 
   const changeAvatar = async () => {
@@ -233,11 +324,14 @@ export default function ProfilScreen() {
                       </View>
                       <Text style={styles.teamCode}>{t('profile.code')}: {team.inviteCode}</Text>
                     </View>
-                    {team.role === 'captain' && (
-                      <Pressable onPress={() => confirmDelete(team)} hitSlop={8} style={styles.trash}>
-                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
-                      </Pressable>
-                    )}
+                    <Touchable
+                      onPress={() => openTeamMenu(team)}
+                      hitSlop={8}
+                      style={styles.teamMenu}
+                      scaleTo={0.92}
+                    >
+                      <Ionicons name="ellipsis-horizontal" size={18} color={colors.textDim} />
+                    </Touchable>
                   </View>
                 ))
               )}
@@ -446,11 +540,11 @@ const styles = makeStyles((colors) => ({
   roleMember: { backgroundColor: colors.surface2 },
   roleText: { fontSize: fontSize.xs, fontWeight: '500' },
   teamCode: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 3, letterSpacing: 1 },
-  trash: {
+  teamMenu: {
     width: 34,
     height: 34,
     borderRadius: radius.sm,
-    backgroundColor: colors.dangerBg,
+    backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
   },

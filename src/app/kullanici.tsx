@@ -1,18 +1,26 @@
-// Kullanıcı profili — bir kişinin streak/rozet, rekor ve paylaşımları (herkese açık).
+// Kullanıcı profili — bir kişinin streak/rozet, rekor ve paylaşımları.
+// Profil gizliyse (ve takım arkadaşı değilsem) kilitli görünür.
+// Sağ üstteki "…" menüsünden şikayet / engelleme.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View, } from 'react-native';
+import { useCallback, useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
+import { Avatar } from '@/components/Avatar';
 import { PostCard } from '@/components/PostCard';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { useToast } from '@/components/Toast';
+import { Touchable } from '@/components/Touchable';
+import { useModeration } from '@/components/useModeration';
+import { useAuth } from '@/lib/auth';
 import { useT } from '@/lib/i18n';
+import { isHidden, unblockUser } from '@/lib/moderation';
+import { getPublicProfile, type PublicProfile } from '@/lib/profile';
 import { getUserPosts } from '@/lib/posts';
 import { getUserRecords, type MovementGroup } from '@/lib/records';
 import { getUserStats, type MyStats } from '@/lib/stats';
-import { supabase } from '@/lib/supabase';
 import type { Post } from '@/lib/types';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
@@ -20,43 +28,103 @@ export default function KullaniciScreen() {
   useThemeTick();
   const t = useT();
   const router = useRouter();
+  const { session } = useAuth();
+  const { toast, menu, confirm } = useToast();
+  const { reportUserFlow, blockUserFlow } = useModeration();
   const { id } = useLocalSearchParams<{ id?: string }>();
-  const [username, setUsername] = useState('');
+
+  const [profile, setProfile] = useState<PublicProfile | null>(null);
+  const [blocked, setBlocked] = useState(false);
   const [stats, setStats] = useState<MyStats | null>(null);
   const [records, setRecords] = useState<MovementGroup[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  const load = useCallback(async () => {
     if (!id) return;
-    let active = true;
-    (async () => {
-      const [prof, s, r, p] = await Promise.all([
-        supabase.from('profiles').select('username').eq('id', id).maybeSingle(),
-        getUserStats(id),
-        getUserRecords(id),
-        getUserPosts(id),
-      ]);
-      if (!active) return;
-      setUsername((prof.data as any)?.username ?? t('user.fallbackName'));
-      setStats(s);
-      setRecords(r);
-      setPosts(p);
+    const [prof, hidden] = await Promise.all([getPublicProfile(id), isHidden(id)]);
+    setProfile(prof);
+    setBlocked(hidden);
+
+    // Kilitliyse ağırlık taşıyan sorguları hiç çalıştırma.
+    if (hidden || !prof?.canView) {
+      setStats(null);
+      setRecords([]);
+      setPosts([]);
       setLoading(false);
-    })();
-    return () => {
-      active = false;
-    };
+      return;
+    }
+
+    const [s, r, p] = await Promise.all([getUserStats(id), getUserRecords(id), getUserPosts(id)]);
+    setStats(s);
+    setRecords(r);
+    setPosts(p);
+    setLoading(false);
   }, [id]);
 
-  const initials = (username || '?').slice(0, 2).toUpperCase();
+  useEffect(() => {
+    setLoading(true);
+    load();
+  }, [load]);
+
+  const username = profile?.username ?? '';
+  const isMe = !!id && id === session?.user?.id;
+  const locked = blocked || (!!profile && !profile.canView);
+
+  const askUnblock = async () => {
+    if (!id) return;
+    const ok = await confirm({
+      title: t('blocked.unblockTitle'),
+      message: t('blocked.unblockMessage', { name: username }),
+      confirmLabel: t('blocked.unblock'),
+      icon: 'person-add-outline',
+    });
+    if (!ok) return;
+    const { error } = await unblockUser(id);
+    if (error) return toast(error, 'error');
+    toast(t('blocked.unblocked', { name: username }), 'info');
+    setLoading(true);
+    load();
+  };
+
+  const openMenu = async () => {
+    if (!id) return;
+    const choice = await menu({
+      title: username || t('user.menuTitle'),
+      options: blocked
+        ? [{ key: 'unblock', label: t('blocked.unblock'), icon: 'person-add-outline' }]
+        : [
+            { key: 'report', label: t('report.user'), icon: 'flag-outline' },
+            { key: 'block', label: t('block.user'), icon: 'ban-outline', destructive: true },
+          ],
+    });
+    if (choice === 'unblock') askUnblock();
+    if (choice === 'report') await reportUserFlow(id);
+    if (choice === 'block') {
+      const done = await blockUserFlow(id, username);
+      if (done) {
+        setLoading(true);
+        load();
+      }
+    }
+  };
 
   return (
     <Screen padded={false}>
       <View style={styles.header}>
-        <Ionicons name="chevron-back" size={26} color={colors.text} onPress={() => router.back()} />
-        <Text style={styles.headerTitle}>{username || 'Profil'}</Text>
-        <View style={{ width: 26 }} />
+        <Touchable style={styles.iconBtn} onPress={() => router.back()} scaleTo={0.9}>
+          <Ionicons name="chevron-back" size={26} color={colors.text} />
+        </Touchable>
+        <Text style={styles.headerTitle} numberOfLines={1}>
+          {username || t('user.menuTitle')}
+        </Text>
+        {isMe || !id ? (
+          <View style={styles.iconBtn} />
+        ) : (
+          <Touchable style={styles.iconBtn} onPress={openMenu} scaleTo={0.9}>
+            <Ionicons name="ellipsis-horizontal" size={22} color={colors.textDim} />
+          </Touchable>
+        )}
       </View>
 
       {loading ? (
@@ -66,65 +134,88 @@ export default function KullaniciScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.top}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
+            <Avatar username={username || '?'} url={profile?.avatarUrl ?? null} size={72} />
             <Text style={styles.username}>{username}</Text>
           </View>
 
-          {stats && (
-            <View style={styles.statsRow}>
-              <View style={styles.statBox}>
-                <View style={styles.streakTop}>
-                  <Ionicons name="flame" size={16} color={colors.accent} />
-                  <Text style={styles.statNum}>{stats.currentStreak}</Text>
-                </View>
-                <Text style={styles.statLabel}>{t('profile.streak')}</Text>
+          {locked ? (
+            <View style={styles.locked}>
+              <View style={styles.lockIcon}>
+                <Ionicons
+                  name={blocked ? 'ban-outline' : 'lock-closed-outline'}
+                  size={26}
+                  color={colors.textDim}
+                />
               </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNum}>{stats.longestStreak}</Text>
-                <Text style={styles.statLabel}>en uzun</Text>
-              </View>
-              <View style={styles.statBox}>
-                <Text style={styles.statNum}>{stats.totalPosts}</Text>
-                <Text style={styles.statLabel}>{t('profile.posts')}</Text>
-              </View>
+              <Text style={styles.lockTitle}>
+                {t(blocked ? 'user.blockedTitle' : 'user.private')}
+              </Text>
+              <Text style={styles.lockBody}>
+                {t(blocked ? 'user.blockedBody' : 'user.privateBody')}
+              </Text>
+              {blocked && (
+                <Touchable style={styles.unblock} onPress={askUnblock} scaleTo={0.96}>
+                  <Text style={styles.unblockText}>{t('blocked.unblock')}</Text>
+                </Touchable>
+              )}
             </View>
-          )}
-
-          {stats && stats.badges.length > 0 && (
-            <View style={styles.badges}>
-              {stats.badges.map((b, i) => (
-                <View key={i} style={styles.badge}>
-                  <Ionicons name={b.icon as any} size={13} color={colors.accent} />
-                  <Text style={styles.badgeText}>{t(b.key)}</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {records.length > 0 && (
-            <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Rekorlar</Text>
-              <View style={styles.recCard}>
-                {records.map((r) => (
-                  <View key={r.movement} style={styles.recRow}>
-                    <Text style={styles.recMovement}>{r.movement}</Text>
-                    <Text style={styles.recBest}>{r.best} kg</Text>
+          ) : (
+            <>
+              {stats && (
+                <View style={styles.statsRow}>
+                  <View style={styles.statBox}>
+                    <View style={styles.streakTop}>
+                      <Ionicons name="flame" size={16} color={colors.accent} />
+                      <Text style={styles.statNum}>{stats.currentStreak}</Text>
+                    </View>
+                    <Text style={styles.statLabel}>{t('profile.streak')}</Text>
                   </View>
-                ))}
-              </View>
-            </View>
-          )}
+                  <View style={styles.statBox}>
+                    <Text style={styles.statNum}>{stats.longestStreak}</Text>
+                    <Text style={styles.statLabel}>{t('profile.longest')}</Text>
+                  </View>
+                  <View style={styles.statBox}>
+                    <Text style={styles.statNum}>{stats.totalPosts}</Text>
+                    <Text style={styles.statLabel}>{t('profile.posts')}</Text>
+                  </View>
+                </View>
+              )}
 
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>{t('user.posts')}</Text>
-            {posts.length === 0 ? (
-              <Text style={styles.empty}>{t('user.noPosts')}</Text>
-            ) : (
-              posts.map((p) => <PostCard key={p.id} post={p} />)
-            )}
-          </View>
+              {stats && stats.badges.length > 0 && (
+                <View style={styles.badges}>
+                  {stats.badges.map((b, i) => (
+                    <View key={i} style={styles.badge}>
+                      <Ionicons name={b.icon as any} size={13} color={colors.accent} />
+                      <Text style={styles.badgeText}>{t(b.key)}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+
+              {records.length > 0 && (
+                <View style={styles.section}>
+                  <Text style={styles.sectionTitle}>{t('pr.title')}</Text>
+                  <View style={styles.recCard}>
+                    {records.map((r) => (
+                      <View key={r.movement} style={styles.recRow}>
+                        <Text style={styles.recMovement}>{r.movement}</Text>
+                        <Text style={styles.recBest}>{r.best} kg</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              <View style={styles.section}>
+                <Text style={styles.sectionTitle}>{t('user.posts')}</Text>
+                {posts.length === 0 ? (
+                  <Text style={styles.empty}>{t('user.noPosts')}</Text>
+                ) : (
+                  posts.map((p) => <PostCard key={p.id} post={p} onDeleted={load} />)
+                )}
+              </View>
+            </>
+          )}
         </ScrollView>
       )}
     </Screen>
@@ -136,24 +227,48 @@ const styles = makeStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing.xl,
+    paddingHorizontal: spacing.lg,
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
-  headerTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
+  iconBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
   top: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.lg },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
+  username: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
+
+  locked: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    paddingVertical: spacing.xxl,
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.md,
+  },
+  lockIcon: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
     backgroundColor: colors.surface2,
     alignItems: 'center',
     justifyContent: 'center',
+    marginBottom: spacing.xs,
   },
-  avatarText: { color: colors.accent, fontSize: fontSize.xl, fontWeight: '700' },
-  username: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
+  lockTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
+  lockBody: { color: colors.textDim, fontSize: fontSize.sm, textAlign: 'center', lineHeight: 20 },
+  unblock: {
+    marginTop: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentBg,
+  },
+  unblockText: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '700' },
+
   statsRow: { flexDirection: 'row', gap: spacing.md, marginTop: spacing.sm },
   statBox: { flex: 1, backgroundColor: colors.surface, borderRadius: radius.md, paddingVertical: spacing.md, alignItems: 'center' },
   streakTop: { flexDirection: 'row', alignItems: 'center', gap: 4 },
@@ -164,7 +279,7 @@ const styles = makeStyles((colors) => ({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 5,
-    backgroundColor: 'rgba(245,101,46,0.12)',
+    backgroundColor: colors.accentBg,
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.pill,
