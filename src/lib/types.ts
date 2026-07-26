@@ -11,6 +11,7 @@ export type Post = {
   id: string;
   authorId: string;
   username: string;
+  avatarUrl?: string | null;
   gym?: string | null;
   isLive: boolean;
   // null => görsel yok, barbell placeholder gösterilir (demo/ağsız durum)

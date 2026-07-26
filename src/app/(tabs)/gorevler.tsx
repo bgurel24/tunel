@@ -4,15 +4,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { EmptyState } from '@/components/EmptyState';
 import { OutlineButton } from '@/components/GradientButton';
@@ -41,7 +33,7 @@ const STATUS: Record<Exclude<SubmissionStatus, 'none'>, { color: string; bg: str
 export default function GorevlerScreen() {
   const router = useRouter();
   const bottomPad = useTabBarPadding();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const { session } = useAuth();
   const userId = session?.user?.id ?? '';
 
@@ -111,22 +103,20 @@ export default function GorevlerScreen() {
     await loadTasks(selectedTeam.id);
   };
 
-  const removeTask = (task: TeamTask) => {
-    Alert.alert('Görevi sil', `"${task.title}" silinsin mi?`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await deleteTask(task.id);
-          if (error) toast(error, 'error');
-          else if (selectedTeam) {
-            toast('Görev silindi', 'info');
-            loadTasks(selectedTeam.id);
-          }
-        },
-      },
-    ]);
+  const removeTask = async (task: TeamTask) => {
+    const ok = await confirm({
+      title: 'Görevi sil',
+      message: `"${task.title}" listeden kalkacak. Yüklenen kanıtlar da gider.`,
+      confirmLabel: 'Sil',
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await deleteTask(task.id);
+    if (error) toast(error, 'error');
+    else if (selectedTeam) {
+      toast('Görev silindi', 'info');
+      loadTasks(selectedTeam.id);
+    }
   };
 
   const total = tasks.length;

@@ -11,6 +11,9 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now()
 );
 
+-- Profil fotoğrafı: 'posts' bucket'ında <uid>/avatar-*.jpg yolu.
+alter table public.profiles add column if not exists avatar_path text;
+
 alter table public.profiles enable row level security;
 
 drop policy if exists "profiles okunur" on public.profiles;
@@ -335,6 +338,70 @@ create or replace trigger trg_reaction_counts
 create or replace trigger trg_comment_counts
   after insert or delete on public.post_comments
   for each row execute function public.bump_post_counts();
+
+-- ========== gym_sessions (antrenman çağrısı) ==========
+-- "Yarım saate ana gymdeyim, gelen gelsin" — takıma açılan çağrı.
+create table if not exists public.gym_sessions (
+  id uuid primary key default gen_random_uuid(),
+  team_id uuid not null references public.teams (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  gym text,
+  note text,
+  starts_at timestamptz not null,
+  created_at timestamptz not null default now()
+);
+create index if not exists gym_sessions_team_idx on public.gym_sessions (team_id, starts_at desc);
+alter table public.gym_sessions enable row level security;
+
+-- ========== gym_session_rsvps (geliyorum / yokum) ==========
+create table if not exists public.gym_session_rsvps (
+  session_id uuid not null references public.gym_sessions (id) on delete cascade,
+  user_id uuid not null references public.profiles (id) on delete cascade,
+  status text not null check (status in ('in', 'out')),
+  created_at timestamptz not null default now(),
+  primary key (session_id, user_id)
+);
+alter table public.gym_session_rsvps enable row level security;
+
+-- Politikalar: "drop policy" yazmadan idempotent kur (Supabase yıkıcı işlem uyarısı çıkmasın).
+do $$
+begin
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_sessions' and policyname = 'cagrilar okunur') then
+    create policy "cagrilar okunur" on public.gym_sessions for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_sessions' and policyname = 'uye cagri acar') then
+    create policy "uye cagri acar" on public.gym_sessions for insert with check (
+      auth.uid() = user_id and exists (
+        select 1 from public.team_members m
+        where m.team_id = gym_sessions.team_id and m.user_id = auth.uid()
+      )
+    );
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_sessions' and policyname = 'kendi cagrisini siler') then
+    create policy "kendi cagrisini siler" on public.gym_sessions for delete using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_session_rsvps' and policyname = 'yanitlar okunur') then
+    create policy "yanitlar okunur" on public.gym_session_rsvps for select using (true);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_session_rsvps' and policyname = 'kendi yanitini yazar') then
+    create policy "kendi yanitini yazar" on public.gym_session_rsvps for insert with check (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_session_rsvps' and policyname = 'kendi yanitini gunceller') then
+    create policy "kendi yanitini gunceller" on public.gym_session_rsvps for update using (auth.uid() = user_id);
+  end if;
+
+  if not exists (select 1 from pg_policies where schemaname = 'public' and tablename = 'gym_session_rsvps' and policyname = 'kendi yanitini siler') then
+    create policy "kendi yanitini siler" on public.gym_session_rsvps for delete using (auth.uid() = user_id);
+  end if;
+end $$;
+
+grant select on public.gym_sessions, public.gym_session_rsvps to anon, authenticated;
+grant insert, update, delete on public.gym_sessions, public.gym_session_rsvps to authenticated;
 
 -- ========== personal_records (PR) ==========
 create table if not exists public.personal_records (

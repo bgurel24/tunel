@@ -14,3 +14,9 @@ export function avatarGradient(name: string): [string, string] {
   for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0;
   return PAIRS[h % PAIRS.length];
 }
+
+/** Fotoğrafı olmayan kullanıcı için baş harfler ("burak_g" → "BU"). */
+export function initialsOf(username: string): string {
+  const letters = username.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ]/g, '');
+  return (letters.slice(0, 2) || username.slice(0, 2)).toUpperCase();
+}

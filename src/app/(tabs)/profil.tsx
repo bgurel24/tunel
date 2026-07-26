@@ -5,27 +5,27 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
+import { Avatar } from '@/components/Avatar';
 import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { ListSkeleton, Skeleton } from '@/components/Skeleton';
 import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { Touchable } from '@/components/Touchable';
 import { useAuth } from '@/lib/auth';
-import { avatarGradient } from '@/lib/avatar';
+import { getMyProfile, pickAvatarImage, uploadAvatar } from '@/lib/profile';
 import { getMyStats, type MyStats } from '@/lib/stats';
 import { deleteTeam, getMyTeams, type MyTeam } from '@/lib/teams';
 import {
   colors,
   font,
   fontSize,
-  gradientEnd,
-  gradientStart,
   radius,
   shadow,
   spacing,
@@ -39,20 +39,23 @@ export default function ProfilScreen() {
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = useTabBarPadding();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
 
   const [teams, setTeams] = useState<MyTeam[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<MyStats | null>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
 
   const load = useCallback(() => {
     if (!configured) {
       setLoading(false);
       return;
     }
-    Promise.all([getMyTeams(), getMyStats()]).then(([t, s]) => {
+    Promise.all([getMyTeams(), getMyStats(), getMyProfile()]).then(([t, s, p]) => {
       setTeams(t);
       setStats(s);
+      setAvatarUrl(p?.avatarUrl ?? null);
       setLoading(false);
     });
   }, [configured]);
@@ -63,27 +66,35 @@ export default function ProfilScreen() {
     }, [load])
   );
 
-  const confirmDelete = (team: MyTeam) => {
-    Alert.alert('Takımı sil', `"${team.name}" silinsin mi? Bu geri alınamaz.`, [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await deleteTeam(team.id);
-          if (error) toast(error, 'error');
-          else {
-            toast(`"${team.name}" silindi`, 'info');
-            load();
-          }
-        },
-      },
-    ]);
+  const confirmDelete = async (team: MyTeam) => {
+    const ok = await confirm({
+      title: 'Takımı sil',
+      message: `"${team.name}" tamamen gider: üyeler, görevler, puanlar. Geri dönüşü yok.`,
+      confirmLabel: 'Takımı sil',
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await deleteTeam(team.id);
+    if (error) toast(error, 'error');
+    else {
+      toast(`"${team.name}" silindi`, 'info');
+      load();
+    }
+  };
+
+  const changeAvatar = async () => {
+    const uri = await pickAvatarImage();
+    if (!uri) return;
+    setUploadingAvatar(true);
+    const { error, avatarUrl: url } = await uploadAvatar(uri);
+    setUploadingAvatar(false);
+    if (error) return toast(error, 'error');
+    setAvatarUrl(url ?? null);
+    toast('Profil fotoğrafın güncellendi');
   };
 
   const email = session?.user?.email ?? 'Demo kullanıcı';
   const username = (session?.user?.user_metadata?.username as string | undefined) ?? 'tünel';
-  const initials = username.slice(0, 2).toUpperCase();
 
   return (
     <Screen edges={[]} padded={false}>
@@ -107,18 +118,21 @@ export default function ProfilScreen() {
         <View style={styles.body}>
           {/* Kimlik */}
           <View style={styles.identity}>
-            <View style={styles.avatarRing}>
-              <LinearGradient
-                colors={avatarGradient(username)}
-                start={gradientStart}
-                end={gradientEnd}
-                style={[styles.avatar, shadow.glowSoft]}
-              >
-                <Text style={styles.avatarText}>{initials}</Text>
-              </LinearGradient>
-            </View>
+            <Touchable style={styles.avatarRing} onPress={changeAvatar} scaleTo={0.93}>
+              <Avatar username={username} url={avatarUrl} size={AVATAR} style={shadow.glowSoft} />
+              <View style={styles.avatarEdit}>
+                {uploadingAvatar ? (
+                  <ActivityIndicator color="#fff" size="small" />
+                ) : (
+                  <Ionicons name="camera" size={14} color="#fff" />
+                )}
+              </View>
+            </Touchable>
             <Text style={styles.username}>{username}</Text>
             <Text style={styles.email}>{email}</Text>
+            {!avatarUrl && (
+              <Text style={styles.avatarHint}>Fotoğraf ekle — takımın seni tanısın</Text>
+            )}
           </View>
 
           {loading ? (
@@ -298,21 +312,27 @@ const styles = StyleSheet.create({
   identity: { alignItems: 'center', gap: 2 },
   avatarRing: {
     width: AVATAR + 8,
-    height: (AVATAR + 8) / 1,
+    height: AVATAR + 8,
     borderRadius: (AVATAR + 8) / 2,
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: spacing.sm,
   },
-  avatar: {
-    width: AVATAR,
-    height: AVATAR,
-    borderRadius: AVATAR / 2,
+  avatarEdit: {
+    position: 'absolute',
+    right: 2,
+    bottom: 2,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: colors.accent,
+    borderWidth: 2,
+    borderColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: { color: '#fff', fontSize: fontSize.xl, fontFamily: font.displayBold },
+  avatarHint: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: spacing.xs },
   username: { color: colors.text, fontSize: fontSize.xl, fontFamily: font.display },
   email: { color: colors.textDim, fontSize: fontSize.sm },
 

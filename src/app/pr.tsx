@@ -3,19 +3,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  ActivityIndicator,
-  Alert,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TextInput,
-  View,
-} from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 
 import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { useToast } from '@/components/Toast';
 import { addRecord, deleteRecord, getMyRecords, type MovementGroup } from '@/lib/records';
 import { colors, fontSize, radius, spacing } from '@/theme';
 
@@ -28,6 +21,7 @@ function fmtDate(iso: string) {
 
 export default function PRScreen() {
   const router = useRouter();
+  const { toast, celebrate, confirm } = useToast();
   const [groups, setGroups] = useState<MovementGroup[] | null>(null);
   const [movement, setMovement] = useState('');
   const [weight, setWeight] = useState('');
@@ -43,23 +37,29 @@ export default function PRScreen() {
   const add = async () => {
     const w = parseFloat(weight.replace(',', '.'));
     if (!movement.trim() || isNaN(w) || w <= 0) {
-      Alert.alert('Eksik bilgi', 'Hareket ve geçerli bir kilo gir.');
+      toast('Hareket ve kilo gir', 'error');
       return;
     }
     setSaving(true);
     const { error } = await addRecord(movement, w, parseInt(reps) || 1);
     setSaving(false);
-    if (error) return Alert.alert('Hata', error);
+    if (error) return toast(error, 'error');
     setWeight('');
     setReps('1');
+    celebrate(`${movement} ${w} kg — kayıtta`);
     load();
   };
 
-  const remove = (id: string) => {
-    Alert.alert('Kaydı sil', 'Bu PR kaydı silinsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
-      { text: 'Sil', style: 'destructive', onPress: async () => { await deleteRecord(id); load(); } },
-    ]);
+  const remove = async (id: string) => {
+    const ok = await confirm({
+      title: 'Kaydı sil',
+      message: 'Bu rekor kaydı listenden kalkacak.',
+      confirmLabel: 'Sil',
+      destructive: true,
+    });
+    if (!ok) return;
+    await deleteRecord(id);
+    load();
   };
 
   return (

@@ -1,16 +1,10 @@
 // Marka gradyanlı ana buton. Yükleme durumunda spinner gösterir.
 
 import { LinearGradient } from 'expo-linear-gradient';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  View,
-  type StyleProp,
-  type ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/Text';
+import { Touchable } from '@/components/Touchable';
 import { colors, fontSize, gradientColors, gradientEnd, gradientStart, radius, } from '@/theme';
 
 type Props = {
@@ -24,14 +18,11 @@ type Props = {
 export function GradientButton({ label, onPress, loading, disabled, style }: Props) {
   const inactive = disabled || loading;
   return (
-    <Pressable
+    <Touchable
       onPress={onPress}
       disabled={inactive}
-      style={({ pressed }) => [
-        styles.pressable,
-        { opacity: inactive ? 0.55 : pressed ? 0.9 : 1 },
-        style,
-      ]}
+      scaleTo={0.97}
+      style={[styles.pressable, { opacity: inactive ? 0.55 : 1 }, style]}
     >
       <LinearGradient
         colors={gradientColors}
@@ -45,21 +36,18 @@ export function GradientButton({ label, onPress, loading, disabled, style }: Pro
           <Text style={styles.label}>{label}</Text>
         )}
       </LinearGradient>
-    </Pressable>
+    </Touchable>
   );
 }
 
 // İkincil (çerçeveli) buton.
 export function OutlineButton({ label, onPress, style }: Props) {
   return (
-    <Pressable
-      onPress={onPress}
-      style={({ pressed }) => [styles.outline, { opacity: pressed ? 0.7 : 1 }, style]}
-    >
+    <Touchable onPress={onPress} scaleTo={0.97} style={[styles.outline, style]}>
       <View>
         <Text style={styles.outlineLabel}>{label}</Text>
       </View>
-    </Pressable>
+    </Touchable>
   );
 }
 

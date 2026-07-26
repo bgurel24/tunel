@@ -1,6 +1,7 @@
 // Feed veri katmanı — Supabase bağlıysa oradan, değilse demo veriden okur.
 
 
+import { avatarUrlFrom } from '@/lib/profile';
 import { getMyReactions } from '@/lib/social';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
@@ -55,6 +56,7 @@ function mapRow(row: any): Post {
     id: String(row.id),
     authorId: row.user_id,
     username: row.profiles?.username ?? 'kullanıcı',
+    avatarUrl: avatarUrlFrom(row.profiles?.avatar_path),
     gym: row.gym ?? null,
     isLive: !!row.is_live,
     imageUrl,
@@ -72,7 +74,7 @@ function mapRow(row: any): Post {
 }
 
 const SELECT =
-  'id, user_id, caption, image_path, video_path, is_live, gym, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username)';
+  'id, user_id, caption, image_path, video_path, is_live, gym, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username, avatar_path)';
 
 async function markReactions(posts: Post[]): Promise<Post[]> {
   const reactions = await getMyReactions(posts.map((p) => p.id));

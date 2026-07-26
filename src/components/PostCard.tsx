@@ -7,7 +7,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { VideoView } from 'expo-video';
 import { useRef, useState } from 'react';
-import { Alert, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
+import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
   useSharedValue,
@@ -17,6 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
+import { Avatar } from '@/components/Avatar';
 import { useInlineVideo } from '@/components/InlineVideo';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
@@ -38,11 +39,6 @@ import {
   tabularNums,
 } from '@/theme';
 
-function initialsOf(username: string) {
-  const letters = username.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ]/g, '');
-  return (letters.slice(0, 2) || username.slice(0, 2)).toUpperCase();
-}
-
 export function PostCard({
   post,
   active = true,
@@ -55,7 +51,7 @@ export function PostCard({
 }) {
   const router = useRouter();
   const { session } = useAuth();
-  const { toast } = useToast();
+  const { toast, confirm } = useToast();
   const { width: screenW } = useWindowDimensions();
   const [aspect, setAspect] = useState(1); // en/boy; 0.8 (4:5) ile 1.91 arası sınırlanır
   const [liked, setLiked] = useState(post.myLiked);
@@ -82,22 +78,20 @@ export function PostCard({
     if (post.authorId) router.push({ pathname: '/kullanici', params: { id: post.authorId } });
   };
 
-  const confirmDelete = () => {
-    Alert.alert('Paylaşımı sil', 'Bu paylaşım silinsin mi?', [
-      { text: 'Vazgeç', style: 'cancel' },
-      {
-        text: 'Sil',
-        style: 'destructive',
-        onPress: async () => {
-          const { error } = await deletePost(post.id);
-          if (error) toast(error, 'error');
-          else {
-            toast('Paylaşım silindi', 'info');
-            onDeleted?.();
-          }
-        },
-      },
-    ]);
+  const confirmDelete = async () => {
+    const ok = await confirm({
+      title: 'Paylaşımı sil',
+      message: 'Bu paylaşım ve altındaki her şey gider. Geri dönüşü yok.',
+      confirmLabel: 'Sil',
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await deletePost(post.id);
+    if (error) toast(error, 'error');
+    else {
+      toast('Paylaşım silindi', 'info');
+      onDeleted?.();
+    }
   };
 
   const popHeartIcon = () => {
@@ -159,14 +153,7 @@ export function PostCard({
     <View style={styles.card}>
       <View style={styles.header}>
         <Pressable onPress={openProfile}>
-          <LinearGradient
-            colors={avatarColors}
-            start={gradientStart}
-            end={gradientEnd}
-            style={styles.avatar}
-          >
-            <Text style={styles.avatarText}>{initialsOf(post.username)}</Text>
-          </LinearGradient>
+          <Avatar username={post.username} url={post.avatarUrl} size={38} />
         </Pressable>
         <Pressable style={{ flex: 1 }} onPress={openProfile}>
           <Text style={styles.username}>{post.username}</Text>

@@ -15,13 +15,16 @@ import { Logo } from '@/components/Logo';
 import { PostCard } from '@/components/PostCard';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
+import { SessionCard } from '@/components/SessionCard';
 import { FeedSkeleton } from '@/components/Skeleton';
 import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
+import { Touchable } from '@/components/Touchable';
 import { getCrew, type CrewMember } from '@/lib/crew';
 import { getFeed } from '@/lib/posts';
+import { getActiveSessions, type GymSession } from '@/lib/sessions';
 import type { FeedKind, Post } from '@/lib/types';
-import { colors, font, fontSize, spacing } from '@/theme';
+import { colors, font, fontSize, radius, spacing } from '@/theme';
 
 const FEEDS = [
   { key: 'takim' as const, label: 'Takım' },
@@ -38,6 +41,7 @@ export default function FeedScreen() {
   const [feed, setFeed] = useState<FeedKind>('takim');
   const [posts, setPosts] = useState<Post[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
+  const [sessions, setSessions] = useState<GymSession[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [focused, setFocused] = useState(true);
@@ -52,10 +56,11 @@ export default function FeedScreen() {
     useCallback(() => {
       let active = true;
       setFocused(true);
-      Promise.all([getFeed(feed), getCrew()]).then(([data, members]) => {
+      Promise.all([getFeed(feed), getCrew(), getActiveSessions()]).then(([data, members, calls]) => {
         if (!active) return;
         setPosts(data);
         setCrew(members);
+        setSessions(calls);
         setLoading(false);
       });
       return () => {
@@ -67,11 +72,16 @@ export default function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    const [data, members] = await Promise.all([getFeed(feed), getCrew()]);
+    const [data, members, calls] = await Promise.all([getFeed(feed), getCrew(), getActiveSessions()]);
     setPosts(data);
     setCrew(members);
+    setSessions(calls);
     setRefreshing(false);
   }, [feed]);
+
+  const reloadSessions = useCallback(() => {
+    getActiveSessions().then(setSessions);
+  }, []);
 
   const switchFeed = (next: FeedKind) => {
     setFeed(next);
@@ -81,6 +91,24 @@ export default function FeedScreen() {
   const listHeader = (
     <View>
       <CrewStrip crew={crew} />
+
+      {sessions.map((s) => (
+        <SessionCard key={s.id} session={s} onChanged={reloadSessions} />
+      ))}
+
+      {sessions.length === 0 && (
+        <Touchable style={styles.callRow} onPress={() => router.push('/cagri')} scaleTo={0.98}>
+          <View style={styles.callIcon}>
+            <Ionicons name="flash" size={17} color={colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.callTitle}>Bugün gym var mı?</Text>
+            <Text style={styles.callSub}>Takımı çağır, gelen gelsin</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </Touchable>
+      )}
+
       <Segmented options={FEEDS} value={feed} onChange={switchFeed} />
       <View style={{ height: spacing.lg }} />
     </View>
@@ -143,6 +171,10 @@ export default function FeedScreen() {
           <Logo size={26} showWordmark={false} />
           <Text style={styles.wordmark}>TÜNEL</Text>
           <View style={{ flex: 1 }} />
+          <Touchable onPress={() => router.push('/cagri')} hitSlop={10} scaleTo={0.88} style={styles.headerCall}>
+            <Ionicons name="flash" size={16} color={colors.accent} />
+            <Text style={styles.headerCallText}>Çağır</Text>
+          </Touchable>
           <Pressable onPress={() => router.push('/bildirimler')} hitSlop={10}>
             <Ionicons name="notifications-outline" size={22} color={colors.textDim} />
           </Pressable>
@@ -183,4 +215,35 @@ const styles = StyleSheet.create({
     height: StyleSheet.hairlineWidth,
     backgroundColor: colors.line,
   },
+  headerCall: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentBg,
+  },
+  headerCallText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '700' },
+  callRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    borderRadius: radius.lg,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  callIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: colors.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  callTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
+  callSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 1 },
 });

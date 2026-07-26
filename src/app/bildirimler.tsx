@@ -3,11 +3,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Alert, Pressable, StyleSheet, View, } from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, View, } from 'react-native';
 
 import { OutlineButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
+import { useToast } from '@/components/Toast';
 import { getDailySettings, sendTestNotification, setDailyReminder } from '@/lib/notifications';
 import { colors, fontSize, radius, spacing } from '@/theme';
 
@@ -15,6 +16,7 @@ const HOURS = [8, 12, 18, 21];
 
 export default function BildirimlerScreen() {
   const router = useRouter();
+  const { toast } = useToast();
   const [enabled, setEnabled] = useState(false);
   const [hour, setHour] = useState(18);
   const [loading, setLoading] = useState(true);
@@ -33,18 +35,19 @@ export default function BildirimlerScreen() {
     const { error } = await setDailyReminder(nextEnabled, nextHour, 0);
     setBusy(false);
     if (error) {
-      Alert.alert('Bildirim', error);
+      toast(error, 'error');
       setEnabled(false);
       return;
     }
     setEnabled(nextEnabled);
     setHour(nextHour);
+    toast(nextEnabled ? 'Hatırlatma kuruldu' : 'Hatırlatma kapatıldı', nextEnabled ? 'success' : 'info');
   };
 
   const test = async () => {
     const { error } = await sendTestNotification();
-    if (error) Alert.alert('Bildirim', error);
-    else Alert.alert('Gönderildi', 'Test bildirimi 2 saniye içinde gelecek.');
+    if (error) toast(error, 'error');
+    else toast('Test bildirimi 2 saniyeye gelecek', 'info');
   };
 
   if (loading) {
