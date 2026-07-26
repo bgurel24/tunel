@@ -16,7 +16,8 @@ import {
   type ViewToken,
 } from 'react-native';
 
-import { colors } from '@/theme';
+import { usePref } from '@/lib/prefs';
+import { colors, makeStyles, useThemeTick } from '@/theme';
 
 /** Ekran şu an odakta mı — sekme/sayfa değişince videoları susturmak için. */
 export function useScreenFocused() {
@@ -58,15 +59,25 @@ export function useVisibleVideo() {
   return { visibleId, viewabilityConfigCallbackPairs: pairs.current };
 }
 
-/** Oynatıcı + ses durumu. `active` false olduğunda video durur ve sesi kapanır. */
+/**
+ * Oynatıcı + ses durumu. `active` false olduğunda video durur ve sesi kapanır.
+ * Ayarlarda "otomatik oynat" kapalıysa video dokunulana kadar beklemede kalır.
+ */
 export function useInlineVideo(uri: string | null | undefined, active: boolean) {
+  const autoplay = usePref('autoplay');
   const [muted, setMuted] = useState(true);
+  const [started, setStarted] = useState(false);
   const player = useVideoPlayer(uri ?? null, (p) => {
     p.loop = true;
     p.muted = true;
   });
   const foreground = useAppForeground();
-  const playing = !!uri && active && foreground;
+  const playing = !!uri && active && foreground && (autoplay || started);
+
+  // Kart görünürden çıkınca elle başlatma da sıfırlansın.
+  useEffect(() => {
+    if (!active) setStarted(false);
+  }, [active]);
 
   useEffect(() => {
     if (!uri) return;
@@ -85,7 +96,16 @@ export function useInlineVideo(uri: string | null | undefined, active: boolean) 
     setMuted(next);
   }, [muted, player]);
 
-  return { player, muted, toggleMute };
+  /** Dokunuş: beklemedeyse başlatır, oynuyorsa sesi açıp kapatır. */
+  const press = useCallback(() => {
+    if (!autoplay && !started) {
+      setStarted(true);
+      return;
+    }
+    toggleMute();
+  }, [autoplay, started, toggleMute]);
+
+  return { player, muted, toggleMute, playing, press };
 }
 
 export function InlineVideo({
@@ -99,16 +119,22 @@ export function InlineVideo({
   style?: StyleProp<ViewStyle>;
   contentFit?: 'cover' | 'contain';
 }) {
-  const { player, muted, toggleMute } = useInlineVideo(uri, active);
+  useThemeTick();
+  const { player, muted, playing, press } = useInlineVideo(uri, active);
 
   return (
-    <Pressable style={style} onPress={toggleMute}>
+    <Pressable style={style} onPress={press}>
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
         contentFit={contentFit}
         nativeControls={false}
       />
+      {!playing && (
+        <View style={styles.playBadge}>
+          <Ionicons name="play" size={22} color="#fff" />
+        </View>
+      )}
       <View style={styles.muteBtn}>
         <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
       </View>
@@ -116,7 +142,19 @@ export function InlineVideo({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
+  playBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    marginTop: -26,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: colors.scrim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   muteBtn: {
     position: 'absolute',
     bottom: 10,
@@ -128,4 +166,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

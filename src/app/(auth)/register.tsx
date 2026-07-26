@@ -10,9 +10,10 @@ import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
-import { colors, fontSize, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function RegisterScreen() {
+  useThemeTick();
   const { signUp } = useAuth();
   const router = useRouter();
   const [username, setUsername] = useState('');
@@ -108,7 +109,7 @@ export default function RegisterScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -151,4 +152,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '500',
   },
-});
+}));

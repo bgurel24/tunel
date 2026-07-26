@@ -5,7 +5,7 @@ import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } f
 
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
-import { colors, fontSize, gradientColors, gradientEnd, gradientStart, radius, } from '@/theme';
+import { colors, fontSize, gradientColors, gradientEnd, gradientStart, makeStyles, radius, useThemeTick } from '@/theme';
 
 type Props = {
   label: string;
@@ -16,6 +16,7 @@ type Props = {
 };
 
 export function GradientButton({ label, onPress, loading, disabled, style }: Props) {
+  useThemeTick();
   const inactive = disabled || loading;
   return (
     <Touchable
@@ -42,6 +43,7 @@ export function GradientButton({ label, onPress, loading, disabled, style }: Pro
 
 // İkincil (çerçeveli) buton.
 export function OutlineButton({ label, onPress, style }: Props) {
+  useThemeTick();
   return (
     <Touchable onPress={onPress} scaleTo={0.97} style={[styles.outline, style]}>
       <View>
@@ -51,7 +53,7 @@ export function OutlineButton({ label, onPress, style }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   pressable: {
     borderRadius: radius.md,
     overflow: 'hidden',
@@ -78,4 +80,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
     fontWeight: '500',
   },
-});
+}));

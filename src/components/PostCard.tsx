@@ -1,7 +1,7 @@
 // Feed paylaşım kartı — gerçek beğeni/alkış (kalıcı) + yorum, canlı rozeti, müzik barı.
 
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
@@ -32,11 +32,13 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   scrimGradient,
   shadow,
   spacing,
   tabularNums,
+  useThemeTick,
 } from '@/theme';
 
 export function PostCard({
@@ -49,6 +51,7 @@ export function PostCard({
   active?: boolean;
   onDeleted?: () => void;
 }) {
+  useThemeTick();
   const router = useRouter();
   const { session } = useAuth();
   const { toast, confirm } = useToast();
@@ -58,7 +61,7 @@ export function PostCard({
   const [clapped, setClapped] = useState(post.myClapped);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [clapCount, setClapCount] = useState(post.clapCount);
-  const { player, muted, toggleMute } = useInlineVideo(post.videoUrl, active);
+  const { player, muted, playing, press } = useInlineVideo(post.videoUrl, active);
 
   const isMine = !!post.authorId && post.authorId === session?.user?.id;
   const mediaAspect = post.videoUrl ? 0.8 : aspect;
@@ -142,7 +145,7 @@ export function PostCard({
     } else {
       lastTap.current = now;
       if (post.videoUrl) {
-        tapTimeout.current = setTimeout(() => toggleMute(), 280);
+        tapTimeout.current = setTimeout(() => press(), 280);
       }
     }
   };
@@ -195,6 +198,11 @@ export function PostCard({
               contentFit="cover"
               nativeControls={false}
             />
+            {!playing && (
+              <View style={styles.playBadge}>
+                <Ionicons name="play" size={24} color="#fff" />
+              </View>
+            )}
             <View style={styles.muteBtn}>
               <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
             </View>
@@ -293,7 +301,7 @@ export function PostCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   card: { marginBottom: spacing.xl },
   header: {
     flexDirection: 'row',
@@ -365,6 +373,18 @@ const styles = StyleSheet.create({
   },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.brandFrom },
   liveText: { color: colors.text, fontSize: fontSize.xs, fontWeight: '500' },
+  playBadge: {
+    position: 'absolute',
+    alignSelf: 'center',
+    top: '50%',
+    marginTop: -28,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: colors.scrim,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   muteBtn: {
     position: 'absolute',
     bottom: 10,
@@ -397,7 +417,7 @@ const styles = StyleSheet.create({
   },
   action: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   actionCount: { color: colors.textDim, fontSize: fontSize.sm, fontWeight: '500', ...tabularNums },
-  caption: { color: '#D7D7DC', fontSize: fontSize.sm, lineHeight: 20 },
+  caption: { color: colors.text, fontSize: fontSize.sm, lineHeight: 20 },
   captionUser: { color: colors.text, fontWeight: '600' },
   commentHint: { color: colors.textFaint, fontSize: fontSize.sm, marginTop: spacing.xs },
-});
+}));

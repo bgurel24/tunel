@@ -13,9 +13,11 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   shadow,
   spacing,
+  useThemeTick,
 } from '@/theme';
 
 type Props = {
@@ -27,6 +29,7 @@ type Props = {
 };
 
 export function EmptyState({ icon, title, body, actionLabel, onAction }: Props) {
+  useThemeTick();
   return (
     <Animated.View entering={FadeInDown.duration(400)} style={styles.wrap}>
       <View style={styles.ringOuter}>
@@ -61,7 +64,7 @@ export function EmptyState({ icon, title, body, actionLabel, onAction }: Props) 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: {
     alignItems: 'center',
     gap: spacing.sm,
@@ -99,4 +102,4 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
   },
   actionLabel: { color: '#fff', fontSize: fontSize.sm, fontWeight: '600' },
-});
+}));

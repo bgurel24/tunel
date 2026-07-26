@@ -6,7 +6,7 @@ import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { avatarGradient, initialsOf } from '@/lib/avatar';
-import { gradientEnd, gradientStart } from '@/theme';
+import { gradientEnd, gradientStart, makeStyles, useThemeTick } from '@/theme';
 
 export function Avatar({
   username,
@@ -19,6 +19,7 @@ export function Avatar({
   size?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  useThemeTick();
   const shape = { width: size, height: size, borderRadius: size / 2 };
 
   if (url) {
@@ -47,6 +48,6 @@ export function Avatar({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   center: { alignItems: 'center', justifyContent: 'center' },
-});
+}));

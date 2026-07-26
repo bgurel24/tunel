@@ -12,7 +12,7 @@ import Svg, {
 } from 'react-native-svg';
 import { StyleSheet, View } from 'react-native';
 
-import { colors, font } from '@/theme';
+import { colors, font, makeStyles, useThemeTick } from '@/theme';
 
 type Props = {
   size?: number;
@@ -23,6 +23,7 @@ const MARK_W = 280;
 const MARK_H = 345;
 
 export function Logo({ size = 150, showWordmark = true }: Props) {
+  useThemeTick();
   const markHeight = (size * MARK_H) / MARK_W;
 
   return (
@@ -136,9 +137,9 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

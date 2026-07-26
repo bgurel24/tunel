@@ -16,7 +16,7 @@ import { Touchable } from '@/components/Touchable';
 import { createSession } from '@/lib/sessions';
 import { clockLabel } from '@/lib/time';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
-import { colors, font, fontSize, radius, spacing } from '@/theme';
+import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 /** Hazır zaman seçenekleri — dakika cinsinden. */
 const WHEN = [
@@ -28,6 +28,7 @@ const WHEN = [
 ];
 
 export default function CagriScreen() {
+  useThemeTick();
   const router = useRouter();
   const { celebrate, toast } = useToast();
 
@@ -162,7 +163,7 @@ export default function CagriScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -205,4 +206,4 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: spacing.lg,
   },
-});
+}));

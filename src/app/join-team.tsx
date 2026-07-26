@@ -12,11 +12,12 @@ import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
 import { createTeam, joinTeam } from '@/lib/teams';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 type Mode = 'katil' | 'olustur';
 
 export default function TeamScreen() {
+  useThemeTick();
   const router = useRouter();
   const { celebrate } = useToast();
   const { configured } = useAuth();
@@ -144,7 +145,7 @@ export default function TeamScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,4 +189,4 @@ const styles = StyleSheet.create({
     marginVertical: spacing.xs,
   },
   codeHint: { color: colors.textFaint, fontSize: fontSize.xs },
-});
+}));

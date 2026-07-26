@@ -5,7 +5,7 @@
 // "şablondan yapılmış" gösteriyordu.
 
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   createContext,
@@ -33,6 +33,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
+import { useT } from '@/lib/i18n';
+import { getPrefs } from '@/lib/prefs';
 import {
   colors,
   font,
@@ -40,9 +42,11 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   shadow,
   spacing,
+  useThemeTick,
 } from '@/theme';
 
 type ToastKind = 'success' | 'error' | 'info';
@@ -74,13 +78,22 @@ export function useToast() {
   return useContext(FeedbackContext);
 }
 
-const KIND_META: Record<ToastKind, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
-  success: { icon: 'checkmark-circle', color: colors.success, bg: colors.successBg },
-  error: { icon: 'alert-circle', color: colors.danger, bg: colors.dangerBg },
-  info: { icon: 'information-circle', color: colors.accent, bg: colors.accentBg },
+const KIND_ICON: Record<ToastKind, keyof typeof Ionicons.glyphMap> = {
+  success: 'checkmark-circle',
+  error: 'alert-circle',
+  info: 'information-circle',
 };
 
+// Renkler render anında okunur — tema değişince güncel kalsın.
+function kindColors(kind: ToastKind) {
+  if (kind === 'success') return { color: colors.success, bg: colors.successBg };
+  if (kind === 'error') return { color: colors.danger, bg: colors.dangerBg };
+  return { color: colors.accent, bg: colors.accentBg };
+}
+
 export function FeedbackProvider({ children }: { children: React.ReactNode }) {
+  useThemeTick();
+  const t = useT();
   const insets = useSafeAreaInsets();
   const [item, setItem] = useState<ToastItem | null>(null);
   const [burst, setBurst] = useState(0);
@@ -102,7 +115,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
 
   const celebrate = useCallback(
     (text?: string) => {
-      setBurst((b) => b + 1);
+      if (getPrefs().celebrations) setBurst((b) => b + 1);
       if (text) toast(text, 'success');
       else Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     },
@@ -140,8 +153,8 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
           pointerEvents="none"
           style={[styles.toast, { top: insets.top + spacing.sm }, shadow.raised]}
         >
-          <View style={[styles.iconWrap, { backgroundColor: KIND_META[item.kind].bg }]}>
-            <Ionicons name={KIND_META[item.kind].icon} size={17} color={KIND_META[item.kind].color} />
+          <View style={[styles.iconWrap, { backgroundColor: kindColors(item.kind).bg }]}>
+            <Ionicons name={KIND_ICON[item.kind]} size={17} color={kindColors(item.kind).color} />
           </View>
           <Text style={styles.toastText} numberOfLines={2}>
             {item.text}
@@ -181,7 +194,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
             <Touchable style={styles.sheetPrimary} onPress={() => closeSheet(true)} scaleTo={0.97}>
               {sheet.destructive ? (
                 <View style={[styles.sheetPrimaryFill, { backgroundColor: colors.danger }]}>
-                  <Text style={styles.sheetPrimaryText}>{sheet.confirmLabel ?? 'Sil'}</Text>
+                  <Text style={styles.sheetPrimaryText}>{sheet.confirmLabel ?? t('common.delete')}</Text>
                 </View>
               ) : (
                 <LinearGradient
@@ -190,13 +203,13 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
                   end={gradientEnd}
                   style={styles.sheetPrimaryFill}
                 >
-                  <Text style={styles.sheetPrimaryText}>{sheet.confirmLabel ?? 'Devam'}</Text>
+                  <Text style={styles.sheetPrimaryText}>{sheet.confirmLabel ?? t('common.continue')}</Text>
                 </LinearGradient>
               )}
             </Touchable>
 
             <Touchable style={styles.sheetCancel} onPress={() => closeSheet(false)} scaleTo={0.97} haptic={false}>
-              <Text style={styles.sheetCancelText}>{sheet.cancelLabel ?? 'Vazgeç'}</Text>
+              <Text style={styles.sheetCancelText}>{sheet.cancelLabel ?? t('common.cancel')}</Text>
             </Touchable>
           </Animated.View>
         </View>
@@ -205,16 +218,15 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-const PIECE_COLORS = [colors.brandFrom, colors.brandMid, colors.brandTo, colors.success, '#FFFFFF'];
-
 function Confetti() {
   const { width, height } = useWindowDimensions();
+  const palette = [colors.brandFrom, colors.brandMid, colors.brandTo, colors.success, '#FFFFFF'];
   const pieces = useMemo(
     () =>
       Array.from({ length: 26 }, (_, i) => ({
         key: i,
         x: Math.random() * width,
-        color: PIECE_COLORS[i % PIECE_COLORS.length],
+        color: palette[i % palette.length],
         size: 6 + Math.random() * 6,
         drift: (Math.random() - 0.5) * 120,
         spin: 180 + Math.random() * 540,
@@ -281,7 +293,7 @@ function Piece({ x, color, size, drift, spin, delay, duration, fall }: PieceProp
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   toast: {
     position: 'absolute',
     left: spacing.lg,
@@ -354,4 +366,4 @@ const styles = StyleSheet.create({
   sheetPrimaryText: { color: '#fff', fontSize: fontSize.md, fontWeight: '600' },
   sheetCancel: { alignSelf: 'stretch', alignItems: 'center', paddingVertical: 15, marginTop: spacing.xs },
   sheetCancelText: { color: colors.textDim, fontSize: fontSize.md, fontWeight: '500' },
-});
+}));

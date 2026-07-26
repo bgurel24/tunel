@@ -1,7 +1,7 @@
 // Basınca hafifçe küçülen dokunma alanı. Uygulamadaki "cansız buton" hissini
 // kırmak için normal Pressable yerine bunu kullan.
 
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { Pressable, type PressableProps, type StyleProp, type ViewStyle } from 'react-native';
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 

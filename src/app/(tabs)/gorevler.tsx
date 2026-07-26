@@ -22,7 +22,7 @@ import {
   type TeamTask,
 } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const STATUS: Record<Exclude<SubmissionStatus, 'none'>, { color: string; bg: string; label: string; icon: keyof typeof Ionicons.glyphMap }> = {
   approved: { color: colors.success, bg: colors.successBg, label: 'onaylandı', icon: 'checkmark' },
@@ -31,6 +31,7 @@ const STATUS: Record<Exclude<SubmissionStatus, 'none'>, { color: string; bg: str
 };
 
 export default function GorevlerScreen() {
+  useThemeTick();
   const router = useRouter();
   const bottomPad = useTabBarPadding();
   const { toast, confirm } = useToast();
@@ -300,7 +301,7 @@ export default function GorevlerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingTop: spacing.xxl, paddingHorizontal: spacing.md },
   header: {
@@ -403,4 +404,4 @@ const styles = StyleSheet.create({
   infoText: { color: colors.textDim, fontSize: fontSize.xs, flex: 1 },
   emptyTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
   emptyBody: { color: colors.textDim, fontSize: fontSize.sm, textAlign: 'center', lineHeight: 20 },
-});
+}));

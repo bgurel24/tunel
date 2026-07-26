@@ -7,7 +7,7 @@ import { EmptyState } from '@/components/EmptyState';
 import { Screen } from '@/components/Screen';
 import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
-import { colors, font, fontSize, spacing } from '@/theme';
+import { colors, font, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 type Props = {
   title: string;
@@ -16,6 +16,7 @@ type Props = {
 };
 
 export function Placeholder({ title, icon, description }: Props) {
+  useThemeTick();
   const bottomPad = useTabBarPadding();
 
   return (
@@ -28,7 +29,7 @@ export function Placeholder({ title, icon, description }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   title: {
     color: colors.text,
     fontSize: fontSize.xl,
@@ -36,4 +37,4 @@ const styles = StyleSheet.create({
     paddingTop: spacing.sm,
     paddingBottom: spacing.md,
   },
-});
+}));

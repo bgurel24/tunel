@@ -10,11 +10,12 @@ import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
 import { getDailySettings, sendTestNotification, setDailyReminder } from '@/lib/notifications';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const HOURS = [8, 12, 18, 21];
 
 export default function BildirimlerScreen() {
+  useThemeTick();
   const router = useRouter();
   const { toast } = useToast();
   const [enabled, setEnabled] = useState(false);
@@ -115,7 +116,7 @@ export default function BildirimlerScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   header: {
     flexDirection: 'row',
@@ -154,4 +155,4 @@ const styles = StyleSheet.create({
   chipTextActive: { color: colors.text, fontWeight: '500' },
   info: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.xl },
   infoText: { color: colors.textFaint, fontSize: fontSize.xs, flex: 1, lineHeight: 16 },
-});
+}));

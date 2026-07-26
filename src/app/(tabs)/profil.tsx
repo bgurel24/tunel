@@ -19,6 +19,7 @@ import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
 import { Touchable } from '@/components/Touchable';
 import { useAuth } from '@/lib/auth';
+import { useT } from '@/lib/i18n';
 import { getMyProfile, pickAvatarImage, uploadAvatar } from '@/lib/profile';
 import { getMyStats, type MyStats } from '@/lib/stats';
 import { deleteTeam, getMyTeams, type MyTeam } from '@/lib/teams';
@@ -26,16 +27,21 @@ import {
   colors,
   font,
   fontSize,
+  makeStyles,
   radius,
   shadow,
   spacing,
   tabularNums,
+  useThemeTick,
+  withAlpha,
 } from '@/theme';
 
 const COVER_HEIGHT = 132;
 
 export default function ProfilScreen() {
-  const { session, signOut, configured } = useAuth();
+  useThemeTick();
+  const { session, configured } = useAuth();
+  const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = useTabBarPadding();
@@ -68,16 +74,16 @@ export default function ProfilScreen() {
 
   const confirmDelete = async (team: MyTeam) => {
     const ok = await confirm({
-      title: 'Takımı sil',
-      message: `"${team.name}" tamamen gider: üyeler, görevler, puanlar. Geri dönüşü yok.`,
-      confirmLabel: 'Takımı sil',
+      title: t('profile.deleteTeam'),
+      message: t('profile.deleteTeamMessage', { name: team.name }),
+      confirmLabel: t('profile.deleteTeam'),
       destructive: true,
     });
     if (!ok) return;
     const { error } = await deleteTeam(team.id);
     if (error) toast(error, 'error');
     else {
-      toast(`"${team.name}" silindi`, 'info');
+      toast(t('profile.teamDeleted', { name: team.name }), 'info');
       load();
     }
   };
@@ -90,10 +96,10 @@ export default function ProfilScreen() {
     setUploadingAvatar(false);
     if (error) return toast(error, 'error');
     setAvatarUrl(url ?? null);
-    toast('Profil fotoğrafın güncellendi');
+    toast(t('profile.avatarUpdated'));
   };
 
-  const email = session?.user?.email ?? 'Demo kullanıcı';
+  const email = session?.user?.email ?? 'demo';
   const username = (session?.user?.user_metadata?.username as string | undefined) ?? 'tünel';
 
   return (
@@ -105,7 +111,7 @@ export default function ProfilScreen() {
         {/* Kapak */}
         <View style={[styles.cover, { height: COVER_HEIGHT + insets.top }]}>
           <LinearGradient
-            colors={['rgba(255,61,113,0.32)', 'rgba(255,138,61,0.10)', 'transparent']}
+            colors={[withAlpha(colors.brandFrom, 0.32), withAlpha(colors.brandTo, 0.1), 'transparent']}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -113,6 +119,13 @@ export default function ProfilScreen() {
           <View style={[styles.coverLogo, { top: insets.top + 6 }]}>
             <Logo size={96} showWordmark={false} />
           </View>
+          <Touchable
+            style={[styles.gear, { top: insets.top + 4 }]}
+            onPress={() => router.push('/ayarlar')}
+            scaleTo={0.9}
+          >
+            <Ionicons name="settings-outline" size={20} color={colors.text} />
+          </Touchable>
         </View>
 
         <View style={styles.body}>
@@ -131,7 +144,7 @@ export default function ProfilScreen() {
             <Text style={styles.username}>{username}</Text>
             <Text style={styles.email}>{email}</Text>
             {!avatarUrl && (
-              <Text style={styles.avatarHint}>Fotoğraf ekle — takımın seni tanısın</Text>
+              <Text style={styles.avatarHint}>{t('profile.avatarHint')}</Text>
             )}
           </View>
 
@@ -147,12 +160,12 @@ export default function ProfilScreen() {
                   <View style={styles.statsRow}>
                     <StatBox
                       value={stats.currentStreak}
-                      label="gün seri"
+                      label={t('profile.streak')}
                       icon="flame"
                       highlight={stats.currentStreak > 0}
                     />
-                    <StatBox value={stats.longestStreak} label="en uzun" />
-                    <StatBox value={stats.totalPosts} label="paylaşım" />
+                    <StatBox value={stats.longestStreak} label={t('profile.longest')} />
+                    <StatBox value={stats.totalPosts} label={t('profile.posts')} />
                   </View>
 
                   {stats.badges.length > 0 && (
@@ -168,9 +181,9 @@ export default function ProfilScreen() {
 
                   <View style={styles.card}>
                     <View style={styles.cardHead}>
-                      <Text style={styles.cardTitle}>Son 5 hafta</Text>
+                      <Text style={styles.cardTitle}>{t('profile.lastWeeks')}</Text>
                       <Text style={styles.cardHint}>
-                        {stats.activeDays.length} gün aktif
+                        {t('profile.activeDays', { n: stats.activeDays.length })}
                       </Text>
                     </View>
                     <ActivityHeatmap activeDays={stats.activeDays} />
@@ -181,22 +194,20 @@ export default function ProfilScreen() {
               {!configured && (
                 <View style={styles.warn}>
                   <Ionicons name="alert-circle-outline" size={18} color={colors.warning} />
-                  <Text style={styles.warnText}>
-                    Supabase bağlı değil — demo modu. Giriş ve veriler için .env yapılandırın.
-                  </Text>
+                  <Text style={styles.warnText}>{t('settings.demoMode')}</Text>
                 </View>
               )}
 
               {/* Takımlar */}
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Takımların</Text>
+                <Text style={styles.sectionTitle}>{t('profile.yourTeams')}</Text>
                 {teams.length > 0 && <Text style={styles.count}>{teams.length}</Text>}
               </View>
 
               {teams.length === 0 ? (
                 <View style={styles.emptyTeams}>
-                  <Text style={styles.emptyText}>Tek başınasın.</Text>
-                  <Text style={styles.emptySub}>Takım kur ya da bir davet koduyla katıl — asıl iş orada.</Text>
+                  <Text style={styles.emptyText}>{t('profile.noTeamTitle')}</Text>
+                  <Text style={styles.emptySub}>{t('profile.noTeamSub')}</Text>
                 </View>
               ) : (
                 teams.map((team) => (
@@ -216,11 +227,11 @@ export default function ProfilScreen() {
                               { color: team.role === 'captain' ? colors.accent : colors.textDim },
                             ]}
                           >
-                            {team.role === 'captain' ? 'Kaptan' : 'Üye'}
+                            {team.role === 'captain' ? t('profile.captain') : t('profile.member')}
                           </Text>
                         </View>
                       </View>
-                      <Text style={styles.teamCode}>Kod: {team.inviteCode}</Text>
+                      <Text style={styles.teamCode}>{t('profile.code')}: {team.inviteCode}</Text>
                     </View>
                     {team.role === 'captain' && (
                       <Pressable onPress={() => confirmDelete(team)} hitSlop={8} style={styles.trash}>
@@ -235,19 +246,13 @@ export default function ProfilScreen() {
 
           {/* Kısayollar */}
           <View style={styles.menu}>
-            <MenuRow icon="barbell-outline" label="Kişisel rekorlar (PR)" onPress={() => router.push('/pr')} />
-            <MenuRow icon="notifications-outline" label="Bildirimler" onPress={() => router.push('/bildirimler')} />
-            <MenuRow icon="people-outline" label="Takıma katıl / oluştur" onPress={() => router.push('/join-team')} />
-            <MenuRow icon="shield-checkmark-outline" label="Kaptan paneli" onPress={() => router.push('/kaptan')} />
-            <MenuRow icon="trophy-outline" label="Liderlik" onPress={() => router.push('/liderlik')} last />
+            <MenuRow icon="barbell-outline" label={t('profile.records')} onPress={() => router.push('/pr')} />
+            <MenuRow icon="people-outline" label={t('profile.joinTeam')} onPress={() => router.push('/join-team')} />
+            <MenuRow icon="shield-checkmark-outline" label={t('profile.captainPanel')} onPress={() => router.push('/kaptan')} />
+            <MenuRow icon="trophy-outline" label={t('profile.leaderboard')} onPress={() => router.push('/liderlik')} />
+            <MenuRow icon="settings-outline" label={t('profile.settings')} onPress={() => router.push('/ayarlar')} last />
           </View>
 
-          {configured && session ? (
-            <Pressable onPress={signOut} style={({ pressed }) => [styles.signOut, { opacity: pressed ? 0.7 : 1 }]}>
-              <Ionicons name="log-out-outline" size={18} color={colors.danger} />
-              <Text style={styles.signOutText}>Çıkış yap</Text>
-            </Pressable>
-          ) : null}
         </View>
       </ScrollView>
     </Screen>
@@ -305,9 +310,21 @@ function MenuRow({
 
 const AVATAR = 78;
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   cover: { width: '100%', overflow: 'hidden' },
   coverLogo: { position: 'absolute', right: -14, opacity: 0.12 },
+  gear: {
+    position: 'absolute',
+    right: spacing.lg,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: colors.glass,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   body: { paddingHorizontal: spacing.xl, marginTop: -AVATAR / 2 },
   identity: { alignItems: 'center', gap: 2 },
   avatarRing: {
@@ -455,16 +472,4 @@ const styles = StyleSheet.create({
   },
   menuDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.lineSoft },
   menuLabel: { flex: 1, color: colors.text, fontSize: fontSize.md },
-  signOut: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: spacing.sm,
-    marginTop: spacing.lg,
-    paddingVertical: 13,
-    borderRadius: radius.md,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,90,110,0.3)',
-  },
-  signOutText: { color: colors.danger, fontSize: fontSize.md, fontWeight: '500' },
-});
+}));

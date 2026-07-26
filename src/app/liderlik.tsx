@@ -23,10 +23,13 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   shadow,
   spacing,
   tabularNums,
+  themeInfo,
+  useThemeTick,
 } from '@/theme';
 
 const KINDS = [
@@ -45,6 +48,7 @@ function initialsOf(name: string) {
 }
 
 export default function LiderlikScreen() {
+  useThemeTick();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
 
@@ -178,7 +182,7 @@ export default function LiderlikScreen() {
                       colors={
                         first
                           ? gradientColors
-                          : ['rgba(255,255,255,0.09)', 'rgba(255,255,255,0.03)']
+                          : [colors.surface3, colors.surface2]
                       }
                       start={{ x: 0, y: 0 }}
                       end={{ x: 0, y: 1 }}
@@ -229,7 +233,7 @@ export default function LiderlikScreen() {
       {/* Kendi sıran — ilk üçte değilsen altta sabit durur */}
       {me && !meInTop && (
         <View style={styles.sticky}>
-          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+          <BlurView intensity={40} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
           <View style={styles.stickyInner}>
             <Text style={styles.rankNum}>{me.rank}</Text>
@@ -252,7 +256,7 @@ export default function LiderlikScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -348,4 +352,4 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
   },
-});
+}));

@@ -4,7 +4,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { BlurView } from 'expo-blur';
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
@@ -21,23 +21,27 @@ import Animated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Text } from '@/components/Text';
+import { useT, type TranslationKey } from '@/lib/i18n';
 import {
   colors,
   fontSize,
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   shadow,
   spacing,
+  themeInfo,
+  useThemeTick,
 } from '@/theme';
 
 type TabName = 'index' | 'kesfet' | 'gorevler' | 'profil';
 
-const META: Record<TabName, { label: string; icon: keyof typeof Ionicons.glyphMap }> = {
-  index: { label: 'Akış', icon: 'home' },
-  kesfet: { label: 'Keşfet', icon: 'search' },
-  gorevler: { label: 'Görevler', icon: 'barbell' },
-  profil: { label: 'Profil', icon: 'person' },
+const META: Record<TabName, { label: TranslationKey; icon: keyof typeof Ionicons.glyphMap }> = {
+  index: { label: 'tab.feed', icon: 'home' },
+  kesfet: { label: 'tab.explore', icon: 'search' },
+  gorevler: { label: 'tab.tasks', icon: 'barbell' },
+  profil: { label: 'tab.profile', icon: 'person' },
 };
 
 // Barın güvenli alan hariç yüksekliği; ekranlar alt boşluğu buradan hesaplar.
@@ -57,6 +61,7 @@ function TabItem({
   focused: boolean;
   onPress: () => void;
 }) {
+  const t = useT();
   const press = useSharedValue(1);
   const lift = useSharedValue(focused ? 1 : 0);
 
@@ -95,7 +100,7 @@ function TabItem({
         />
       </Animated.View>
       <Text style={[styles.label, { color: focused ? colors.accent : colors.textFaint }]}>
-        {meta.label}
+        {t(meta.label)}
       </Text>
     </Pressable>
   );
@@ -148,6 +153,7 @@ function CameraButton() {
 }
 
 export function TabBar({ state, navigation }: BottomTabBarProps) {
+  useThemeTick();
   const insets = useSafeAreaInsets();
 
   const press = (routeKey: string, name: string, index: number) => () => {
@@ -167,7 +173,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFill} />
+      <BlurView intensity={38} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, styles.tintOverlay]} />
       <View style={styles.hairline} />
 
@@ -182,7 +188,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   bar: {
     position: 'absolute',
     left: 0,
@@ -219,4 +225,4 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-});
+}));

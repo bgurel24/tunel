@@ -1,12 +1,12 @@
 // İki/üç seçenekli geçiş — seçili sekmenin altındaki hap kayarak gelir.
 
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 type Option<T extends string> = { key: T; label: string };
 
@@ -53,7 +53,7 @@ export function Segmented<T extends string>({ options, value, onChange }: Props<
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: {
     flexDirection: 'row',
     backgroundColor: colors.surface,
@@ -73,4 +73,4 @@ const styles = StyleSheet.create({
   segment: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm },
   label: { color: colors.textDim, fontSize: fontSize.sm },
   labelActive: { color: colors.text, fontWeight: '600' },
-});
+}));

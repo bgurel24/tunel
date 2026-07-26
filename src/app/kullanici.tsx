@@ -13,9 +13,10 @@ import { getUserRecords, type MovementGroup } from '@/lib/records';
 import { getUserStats, type MyStats } from '@/lib/stats';
 import { supabase } from '@/lib/supabase';
 import type { Post } from '@/lib/types';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 export default function KullaniciScreen() {
+  useThemeTick();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id?: string }>();
   const [username, setUsername] = useState('');
@@ -128,7 +129,7 @@ export default function KullaniciScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -180,4 +181,4 @@ const styles = StyleSheet.create({
   recMovement: { color: colors.text, fontSize: fontSize.sm },
   recBest: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
   empty: { color: colors.textDim, fontSize: fontSize.sm },
-});
+}));

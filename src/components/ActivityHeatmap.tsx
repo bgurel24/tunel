@@ -5,7 +5,7 @@ import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { colors, fontSize, gradientEnd, gradientStart, radius, spacing } from '@/theme';
+import { colors, fontSize, gradientEnd, gradientStart, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const WEEKS = 5;
 const DAY_LABELS = ['P', 'S', 'Ç', 'P', 'C', 'C', 'P'];
@@ -17,6 +17,7 @@ function iso(d: Date) {
 }
 
 export function ActivityHeatmap({ activeDays }: { activeDays: string[] }) {
+  useThemeTick();
   const { cells, todayKey } = useMemo(() => {
     const active = new Set(activeDays);
     const today = new Date();
@@ -52,7 +53,7 @@ export function ActivityHeatmap({ activeDays }: { activeDays: string[] }) {
           c.active ? (
             <LinearGradient
               key={c.key}
-              colors={['#FF3D71', '#FF8A3D']}
+              colors={[colors.brandFrom, colors.brandTo]}
               start={gradientStart}
               end={gradientEnd}
               style={[styles.cell, c.key === todayKey && styles.today]}
@@ -73,7 +74,7 @@ export function ActivityHeatmap({ activeDays }: { activeDays: string[] }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: { gap: 6 },
   labels: { flexDirection: 'row', flexWrap: 'wrap' },
   label: {
@@ -92,4 +93,4 @@ const styles = StyleSheet.create({
   emptyCell: { backgroundColor: colors.surface2 },
   futureCell: { backgroundColor: colors.surface, opacity: 0.5 },
   today: { borderWidth: 1.5, borderColor: colors.text },
-});
+}));

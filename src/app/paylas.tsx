@@ -21,9 +21,10 @@ import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { getPrefs } from '@/lib/prefs';
 import { Touchable } from '@/components/Touchable';
 import { createPost } from '@/lib/posts';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 /** Antrenman etiketleri — paylaşımı "genel sosyal medya" olmaktan çıkarır. */
 const WORKOUT_TAGS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
@@ -37,6 +38,7 @@ const WORKOUT_TAGS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = 
 ];
 
 export default function PaylasScreen() {
+  useThemeTick();
   const router = useRouter();
   const { celebrate } = useToast();
   const [permission, requestPermission] = useCameraPermissions();
@@ -46,7 +48,7 @@ export default function PaylasScreen() {
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
   const [workoutTag, setWorkoutTag] = useState<string | null>(null);
-  const [addToSocial, setAddToSocial] = useState(false);
+  const [addToSocial, setAddToSocial] = useState(getPrefs().defaultShare !== 'team');
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -219,7 +221,7 @@ export default function PaylasScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   fill: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -429,4 +431,4 @@ const styles = StyleSheet.create({
     color: colors.danger,
     fontSize: fontSize.sm,
   },
-});
+}));

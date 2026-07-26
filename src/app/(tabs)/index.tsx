@@ -26,7 +26,7 @@ import { getFeed } from '@/lib/posts';
 import { getActiveSessions, type GymSession } from '@/lib/sessions';
 import { getStarterState, type StarterState } from '@/lib/starter';
 import type { FeedKind, Post } from '@/lib/types';
-import { colors, font, fontSize, radius, spacing } from '@/theme';
+import { colors, font, fontSize, makeStyles, radius, spacing, themeInfo, useThemeTick } from '@/theme';
 
 const FEEDS = [
   { key: 'takim' as const, label: 'Takım' },
@@ -36,6 +36,7 @@ const FEEDS = [
 const HEADER_HEIGHT = 52;
 
 export default function FeedScreen() {
+  useThemeTick();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const bottomPad = useTabBarPadding();
@@ -179,7 +180,7 @@ export default function FeedScreen() {
       />
 
       <View style={[styles.header, { height: insets.top + HEADER_HEIGHT, paddingTop: insets.top }]}>
-        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
+        <BlurView intensity={40} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, styles.headerTint]} />
         <View style={styles.headerRow}>
           <Logo size={26} showWordmark={false} />
@@ -199,7 +200,7 @@ export default function FeedScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     position: 'absolute',
     top: 0,
@@ -260,4 +261,4 @@ const styles = StyleSheet.create({
   },
   callTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
   callSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 1 },
-});
+}));

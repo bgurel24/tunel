@@ -9,8 +9,10 @@ import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { usePref } from '@/lib/prefs';
 import { addRecord, deleteRecord, getMyRecords, type MovementGroup } from '@/lib/records';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { fmtWeight, toKg } from '@/lib/units';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const PRESETS = ['Squat', 'Bench Press', 'Deadlift', 'Overhead Press'];
 
@@ -20,7 +22,9 @@ function fmtDate(iso: string) {
 }
 
 export default function PRScreen() {
+  useThemeTick();
   const router = useRouter();
+  const units = usePref('units');
   const { toast, celebrate, confirm } = useToast();
   const [groups, setGroups] = useState<MovementGroup[] | null>(null);
   const [movement, setMovement] = useState('');
@@ -41,12 +45,12 @@ export default function PRScreen() {
       return;
     }
     setSaving(true);
-    const { error } = await addRecord(movement, w, parseInt(reps) || 1);
+    const { error } = await addRecord(movement, toKg(w, units), parseInt(reps) || 1);
     setSaving(false);
     if (error) return toast(error, 'error');
     setWeight('');
     setReps('1');
-    celebrate(`${movement} ${w} kg — kayıtta`);
+    celebrate(`${movement} ${w} ${units} — kayıtta`);
     load();
   };
 
@@ -134,8 +138,8 @@ export default function PRScreen() {
                   <Text style={styles.cardSub}>{g.entries.length} kayıt</Text>
                 </View>
                 <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={styles.best}>{g.best} kg</Text>
-                  {g.gain > 0 && <Text style={styles.gain}>+{g.gain} kg ilerleme</Text>}
+                  <Text style={styles.best}>{fmtWeight(g.best, units)}</Text>
+                  {g.gain > 0 && <Text style={styles.gain}>+{fmtWeight(g.gain, units)} ilerleme</Text>}
                 </View>
               </View>
 
@@ -143,7 +147,7 @@ export default function PRScreen() {
                 {g.entries.map((e) => (
                   <View key={e.id} style={styles.entryRow}>
                     <Text style={styles.entryWeight}>
-                      {e.weight} kg{e.reps > 1 ? ` × ${e.reps}` : ''}
+                      {fmtWeight(e.weight, units)}{e.reps > 1 ? ` × ${e.reps}` : ''}
                       {e.weight === g.best ? '  🏆' : ''}
                     </Text>
                     <Text style={styles.entryDate}>{fmtDate(e.achievedAt)}</Text>
@@ -161,7 +165,7 @@ export default function PRScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -209,4 +213,4 @@ const styles = StyleSheet.create({
   },
   entryWeight: { flex: 1, color: colors.text, fontSize: fontSize.sm },
   entryDate: { color: colors.textDim, fontSize: fontSize.xs },
-});
+}));

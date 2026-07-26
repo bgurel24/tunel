@@ -2,7 +2,7 @@
 // Feed'in en üstünde durur; takım arkadaşları geliyorum/yokum işaretler.
 
 import { Ionicons } from '@expo/vector-icons';
-import * as Haptics from 'expo-haptics';
+import { Haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -20,9 +20,11 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   shadow,
   spacing,
+  useThemeTick,
 } from '@/theme';
 
 export function SessionCard({
@@ -32,6 +34,7 @@ export function SessionCard({
   session: GymSession;
   onChanged: () => void;
 }) {
+  useThemeTick();
   const { toast, confirm } = useToast();
   const [myStatus, setMyStatus] = useState<RsvpStatus | null>(session.myStatus);
 
@@ -179,7 +182,7 @@ export function SessionCard({
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   card: {
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -229,4 +232,4 @@ const styles = StyleSheet.create({
   btnIn: { backgroundColor: colors.successBg, borderColor: colors.success },
   btnOut: { backgroundColor: colors.dangerBg, borderColor: colors.danger },
   btnText: { color: colors.textDim, fontSize: fontSize.sm, fontWeight: '600' },
-});
+}));

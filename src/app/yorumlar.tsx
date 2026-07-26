@@ -18,9 +18,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { addComment, getComments, type Comment } from '@/lib/social';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 export default function YorumlarScreen() {
+  useThemeTick();
   const router = useRouter();
   const insets = useSafeAreaInsets();
   const { postId } = useLocalSearchParams<{ postId?: string }>();
@@ -121,7 +122,7 @@ export default function YorumlarScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   avatarText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '600' },
-  commentText: { flex: 1, color: '#D7D7DC', fontSize: fontSize.sm, lineHeight: 20 },
+  commentText: { flex: 1, color: colors.text, fontSize: fontSize.sm, lineHeight: 20 },
   commentUser: { color: colors.text, fontWeight: '500' },
   inputBar: {
     flexDirection: 'row',
@@ -170,4 +171,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.md,
   },
   send: { color: colors.accent, fontSize: fontSize.md, fontWeight: '600' },
-});
+}));

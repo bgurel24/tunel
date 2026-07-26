@@ -26,8 +26,10 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   spacing,
+  useThemeTick,
 } from '@/theme';
 
 const CELL: Record<GridStatus, { icon: keyof typeof Ionicons.glyphMap; color: string; bg: string }> = {
@@ -45,6 +47,7 @@ const DECIDED: Record<'approved' | 'rejected', { color: string; bg: string; labe
 type Tab = 'onaylar' | 'eksikler';
 
 export default function KaptanScreen() {
+  useThemeTick();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
   const { toast, celebrate } = useToast();
@@ -290,7 +293,7 @@ function Legend({ icon, color, label }: { icon: keyof typeof Ionicons.glyphMap; 
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -403,4 +406,4 @@ const styles = StyleSheet.create({
   legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { color: colors.textFaint, fontSize: fontSize.xs },
-});
+}));

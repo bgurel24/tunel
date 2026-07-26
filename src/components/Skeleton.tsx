@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, radius, spacing } from '@/theme';
+import { colors, makeStyles, radius, spacing, themeInfo, useThemeTick } from '@/theme';
 
 type BoxProps = {
   width?: DimensionValue;
@@ -26,9 +26,15 @@ type BoxProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-const SHIMMER = ['transparent', 'rgba(255,255,255,0.06)', 'transparent'] as const;
+// Parıltı — koyu temada beyaz, aydınlıkta siyah tonu.
+const shimmer = (): [string, string, string] => [
+  'transparent',
+  themeInfo.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+  'transparent',
+];
 
 export function Skeleton({ width = '100%', height = 14, rounded = radius.sm, style }: BoxProps) {
+  useThemeTick();
   const [w, setW] = useState(0);
   const shift = useSharedValue(0);
 
@@ -51,7 +57,7 @@ export function Skeleton({ width = '100%', height = 14, rounded = radius.sm, sty
       {w > 0 && (
         <Animated.View style={[StyleSheet.absoluteFill, anim]}>
           <LinearGradient
-            colors={SHIMMER}
+            colors={shimmer()}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
@@ -64,6 +70,7 @@ export function Skeleton({ width = '100%', height = 14, rounded = radius.sm, sty
 
 // Akış: paylaşım kartlarının iskeleti.
 export function FeedSkeleton({ count = 3 }: { count?: number }) {
+  useThemeTick();
   return (
     <View style={{ paddingTop: spacing.xs }}>
       {Array.from({ length: count }, (_, i) => (
@@ -89,6 +96,7 @@ export function FeedSkeleton({ count = 3 }: { count?: number }) {
 
 // Liste ekranları (görevler, liderlik, takımlar) için satır iskeleti.
 export function ListSkeleton({ count = 5, height = 62 }: { count?: number; height?: number }) {
+  useThemeTick();
   return (
     <View style={{ gap: spacing.sm }}>
       {Array.from({ length: count }, (_, i) => (
@@ -98,7 +106,7 @@ export function ListSkeleton({ count = 5, height = 62 }: { count?: number; heigh
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   post: { marginBottom: spacing.xl },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-});
+}));

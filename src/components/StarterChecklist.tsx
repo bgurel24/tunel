@@ -8,7 +8,7 @@ import { StyleSheet, View } from 'react-native';
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
 import type { StarterState } from '@/lib/starter';
-import { colors, font, fontSize, radius, spacing } from '@/theme';
+import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 type Step = {
   key: keyof Omit<StarterState, 'done'>;
@@ -43,6 +43,7 @@ const STEPS: Step[] = [
 ];
 
 export function StarterChecklist({ state }: { state: StarterState }) {
+  useThemeTick();
   const router = useRouter();
   const doneCount = STEPS.filter((s) => state[s.key]).length;
 
@@ -85,7 +86,7 @@ export function StarterChecklist({ state }: { state: StarterState }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   card: {
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
@@ -120,4 +121,4 @@ const styles = StyleSheet.create({
   stepTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
   stepTitleDone: { color: colors.textFaint, textDecorationLine: 'line-through' },
   stepBody: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
-});
+}));

@@ -14,8 +14,9 @@ import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
 import { createVideoPost } from '@/lib/posts';
+import { getPrefs, type ShareTarget } from '@/lib/prefs';
 import { submitProof, uploadVideo } from '@/lib/tasks';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 function durationLabel(ms?: number | null) {
   if (!ms) return null;
@@ -25,7 +26,14 @@ function durationLabel(ms?: number | null) {
   return `${m}:${s.toString().padStart(2, '0')}`;
 }
 
+const SCOPE_BY_PREF: Record<ShareTarget, 'takim' | 'sosyal' | 'ikisi'> = {
+  team: 'takim',
+  social: 'sosyal',
+  both: 'ikisi',
+};
+
 export default function GorevYukleScreen() {
+  useThemeTick();
   const router = useRouter();
   const { celebrate } = useToast();
   const { configured } = useAuth();
@@ -36,7 +44,9 @@ export default function GorevYukleScreen() {
   const [label, setLabel] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [shareOn, setShareOn] = useState(false);
-  const [shareScope, setShareScope] = useState<'takim' | 'sosyal' | 'ikisi'>('takim');
+  const [shareScope, setShareScope] = useState<'takim' | 'sosyal' | 'ikisi'>(
+    SCOPE_BY_PREF[getPrefs().defaultShare]
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -212,7 +222,7 @@ export default function GorevYukleScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -296,4 +306,4 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   infoText: { color: colors.textFaint, fontSize: fontSize.xs, flex: 1, lineHeight: 16 },
-});
+}));

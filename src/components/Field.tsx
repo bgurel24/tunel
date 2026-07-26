@@ -4,13 +4,14 @@ import { useState } from 'react';
 import { StyleSheet, TextInput, View, type TextInputProps, } from 'react-native';
 
 import { Text } from '@/components/Text';
-import { colors, fontSize, radius, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 type Props = TextInputProps & {
   label: string;
 };
 
 export function Field({ label, style, ...rest }: Props) {
+  useThemeTick();
   const [focused, setFocused] = useState(false);
   return (
     <View style={styles.wrap}>
@@ -36,7 +37,7 @@ export function Field({ label, style, ...rest }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: {
     gap: spacing.xs,
   },
@@ -54,4 +55,4 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.md,
   },
-});
+}));

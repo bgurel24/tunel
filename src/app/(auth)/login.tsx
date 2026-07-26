@@ -10,9 +10,10 @@ import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
-import { colors, fontSize, spacing } from '@/theme';
+import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function LoginScreen() {
+  useThemeTick();
   const { signIn } = useAuth();
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -92,7 +93,7 @@ export default function LoginScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   content: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -129,4 +130,4 @@ const styles = StyleSheet.create({
     fontSize: fontSize.sm,
     fontWeight: '500',
   },
-});
+}));

@@ -16,11 +16,14 @@ import {
   gradientColors,
   gradientEnd,
   gradientStart,
+  makeStyles,
   radius,
   spacing,
+  useThemeTick,
 } from '@/theme';
 
-const DIM_RING = ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.06)'] as const;
+// Bugün aktif olmayan üyenin soluk halkası — temaya göre çizgi tonlarından.
+const dimRing = (): [string, string] => [colors.lineStrong, colors.line];
 
 function initialsOf(username: string) {
   const letters = username.replace(/[^a-zA-ZğüşıöçĞÜŞİÖÇ]/g, '');
@@ -28,6 +31,7 @@ function initialsOf(username: string) {
 }
 
 export function CrewStrip({ crew }: { crew: CrewMember[] }) {
+  useThemeTick();
   const router = useRouter();
   if (crew.length === 0) return null;
 
@@ -58,7 +62,7 @@ export function CrewStrip({ crew }: { crew: CrewMember[] }) {
             }
           >
             <LinearGradient
-              colors={m.activeToday ? gradientColors : DIM_RING}
+              colors={m.activeToday ? gradientColors : dimRing()}
               start={gradientStart}
               end={gradientEnd}
               style={styles.ring}
@@ -96,7 +100,7 @@ export function CrewStrip({ crew }: { crew: CrewMember[] }) {
 
 const RING = 62;
 
-const styles = StyleSheet.create({
+const styles = makeStyles((colors) => ({
   wrap: { marginBottom: spacing.lg },
   headerRow: { flexDirection: 'row', alignItems: 'baseline', gap: spacing.sm, marginBottom: spacing.sm },
   title: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
@@ -142,4 +146,4 @@ const styles = StyleSheet.create({
   },
   name: { color: colors.textFaint, fontSize: fontSize.xs, maxWidth: RING },
   nameActive: { color: colors.textDim, fontWeight: '500' },
-});
+}));

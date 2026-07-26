@@ -424,3 +424,30 @@ create policy "kendi pr siler" on public.personal_records for delete using (auth
 
 grant select on public.personal_records to anon, authenticated;
 grant insert, update, delete on public.personal_records to authenticated;
+
+-- ========== RPC: hesabı sil (kullanıcının kendisi) ==========
+-- Ayarlar > Hesabı sil. auth.users satırı gidince profiles ve ona bağlı her şey
+-- (postlar, görevler, kanıtlar, PR'lar, üyelikler) cascade ile silinir.
+-- Kullanıcının yüklediği medya da 'posts' bucket'ından temizlenir.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  uid uuid := auth.uid();
+begin
+  if uid is null then
+    raise exception 'oturum yok';
+  end if;
+
+  delete from storage.objects
+  where bucket_id = 'posts'
+    and (storage.foldername(name))[1] = uid::text;
+
+  delete from auth.users where id = uid;
+end;
+$$;
+
+grant execute on function public.delete_my_account() to authenticated;
