@@ -156,7 +156,14 @@ export function PostCard({
           <Avatar username={post.username} url={post.avatarUrl} size={38} />
         </Pressable>
         <Pressable style={{ flex: 1 }} onPress={openProfile}>
-          <Text style={styles.username}>{post.username}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.username}>{post.username}</Text>
+            {post.workoutTag ? (
+              <View style={styles.tag}>
+                <Text style={styles.tagText}>{post.workoutTag}</Text>
+              </View>
+            ) : null}
+          </View>
           <Text style={styles.sub}>{[post.gym, post.timeLabel].filter(Boolean).join(' · ')}</Text>
         </Pressable>
         {isMine ? (
@@ -296,7 +303,15 @@ const styles = StyleSheet.create({
   },
   avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: '#fff', fontSize: fontSize.sm, fontWeight: '600' },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   username: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
+  tag: {
+    backgroundColor: colors.accentBg,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+  },
+  tagText: { color: colors.accent, fontSize: 10, fontWeight: '700' },
   sub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 1 },
   streak: {
     flexDirection: 'row',

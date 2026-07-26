@@ -195,8 +195,8 @@ export default function ProfilScreen() {
 
               {teams.length === 0 ? (
                 <View style={styles.emptyTeams}>
-                  <Text style={styles.emptyText}>Henüz bir takımda değilsin.</Text>
-                  <Text style={styles.emptySub}>Aşağıdan katıl ya da yeni takım oluştur.</Text>
+                  <Text style={styles.emptyText}>Tek başınasın.</Text>
+                  <Text style={styles.emptySub}>Takım kur ya da bir davet koduyla katıl — asıl iş orada.</Text>
                 </View>
               ) : (
                 teams.map((team) => (

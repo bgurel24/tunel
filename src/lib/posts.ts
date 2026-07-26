@@ -58,6 +58,7 @@ function mapRow(row: any): Post {
     username: row.profiles?.username ?? 'kullanıcı',
     avatarUrl: avatarUrlFrom(row.profiles?.avatar_path),
     gym: row.gym ?? null,
+    workoutTag: row.workout_tag ?? null,
     isLive: !!row.is_live,
     imageUrl,
     videoUrl,
@@ -74,7 +75,7 @@ function mapRow(row: any): Post {
 }
 
 const SELECT =
-  'id, user_id, caption, image_path, video_path, is_live, gym, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username, avatar_path)';
+  'id, user_id, caption, image_path, video_path, is_live, gym, workout_tag, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username, avatar_path)';
 
 async function markReactions(posts: Post[]): Promise<Post[]> {
   const reactions = await getMyReactions(posts.map((p) => p.id));
@@ -133,6 +134,8 @@ export type NewPost = {
   caption: string;
   imageUri: string;
   addToSocial: boolean;
+  workoutTag?: string | null;
+  gym?: string | null;
   music?: PostMusic | null;
 };
 
@@ -158,6 +161,8 @@ export async function createPost(input: NewPost): Promise<{ error: string | null
       team_id: teamId,
       image_path: path,
       caption: input.caption || null,
+      workout_tag: input.workoutTag || null,
+      gym: input.gym || null,
       is_live: true,
       shared_social: input.addToSocial,
       music_title: input.music?.title ?? null,

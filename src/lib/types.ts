@@ -13,6 +13,8 @@ export type Post = {
   username: string;
   avatarUrl?: string | null;
   gym?: string | null;
+  /** Antrenman etiketi — "Bacak", "Göğüs", "Kardiyo" gibi. */
+  workoutTag?: string | null;
   isLive: boolean;
   // null => görsel yok, barbell placeholder gösterilir (demo/ağsız durum)
   imageUrl?: string | null;

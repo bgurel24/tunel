@@ -21,8 +21,20 @@ import { Field } from '@/components/Field';
 import { GradientButton } from '@/components/GradientButton';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { Touchable } from '@/components/Touchable';
 import { createPost } from '@/lib/posts';
 import { colors, fontSize, radius, spacing } from '@/theme';
+
+/** Antrenman etiketleri — paylaşımı "genel sosyal medya" olmaktan çıkarır. */
+const WORKOUT_TAGS: { label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { label: 'Göğüs', icon: 'body-outline' },
+  { label: 'Sırt', icon: 'accessibility-outline' },
+  { label: 'Bacak', icon: 'walk-outline' },
+  { label: 'Omuz', icon: 'barbell-outline' },
+  { label: 'Kol', icon: 'fitness-outline' },
+  { label: 'Kardiyo', icon: 'heart-outline' },
+  { label: 'Full body', icon: 'flame-outline' },
+];
 
 export default function PaylasScreen() {
   const router = useRouter();
@@ -33,6 +45,7 @@ export default function PaylasScreen() {
   const [facing, setFacing] = useState<CameraType>('back');
   const [photoUri, setPhotoUri] = useState<string | null>(null);
   const [caption, setCaption] = useState('');
+  const [workoutTag, setWorkoutTag] = useState<string | null>(null);
   const [addToSocial, setAddToSocial] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +59,7 @@ export default function PaylasScreen() {
     if (!photoUri) return;
     setError(null);
     setSharing(true);
-    const { error } = await createPost({ caption, imageUri: photoUri, addToSocial });
+    const { error } = await createPost({ caption, imageUri: photoUri, addToSocial, workoutTag });
     setSharing(false);
     if (error) {
       setError(error);
@@ -108,11 +121,35 @@ export default function PaylasScreen() {
               </View>
             </View>
 
+            <View>
+              <Text style={styles.tagLabel}>Ne çalıştın?</Text>
+              <View style={styles.tagWrap}>
+                {WORKOUT_TAGS.map((t) => {
+                  const active = workoutTag === t.label;
+                  return (
+                    <Touchable
+                      key={t.label}
+                      onPress={() => setWorkoutTag(active ? null : t.label)}
+                      scaleTo={0.93}
+                      style={[styles.tag, active && styles.tagActive]}
+                    >
+                      <Ionicons
+                        name={t.icon}
+                        size={14}
+                        color={active ? colors.accent : colors.textDim}
+                      />
+                      <Text style={[styles.tagText, active && styles.tagTextActive]}>{t.label}</Text>
+                    </Touchable>
+                  );
+                })}
+              </View>
+            </View>
+
             <Field
               label="Açıklama"
               value={caption}
               onChangeText={setCaption}
-              placeholder="Bugün ne çalıştın?"
+              placeholder="Nasıl geçti?"
               multiline
               style={{ minHeight: 60, textAlignVertical: 'top' }}
             />
@@ -313,6 +350,22 @@ const styles = StyleSheet.create({
     color: colors.text,
     fontSize: fontSize.xs,
   },
+  tagLabel: { color: colors.textDim, fontSize: fontSize.sm, marginBottom: spacing.sm },
+  tagWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  tag: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  tagActive: { backgroundColor: colors.accentBg, borderColor: colors.accent },
+  tagText: { color: colors.textDim, fontSize: fontSize.sm },
+  tagTextActive: { color: colors.text, fontWeight: '600' },
   musicRow: {
     flexDirection: 'row',
     alignItems: 'center',

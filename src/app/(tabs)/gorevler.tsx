@@ -141,9 +141,9 @@ export default function GorevlerScreen() {
         <Text style={styles.title}>Görevler</Text>
         <EmptyState
           icon="people-outline"
-          title="Önce bir takım"
-          body="Görevler için bir takıma katıl ya da kendi takımını oluştur."
-          actionLabel="Takıma katıl / oluştur"
+          title="Takımsız görev olmaz"
+          body="Bir takıma gir ya da kendi takımını kur — görevler ve puanlar orada başlıyor."
+          actionLabel="Takıma katıl / kur"
           onAction={() => router.push('/join-team')}
         />
       </Screen>

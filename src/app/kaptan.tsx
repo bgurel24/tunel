@@ -121,9 +121,9 @@ export default function KaptanScreen() {
       ) : teams.length === 0 ? (
         <EmptyState
           icon="shield-outline"
-          title="Kaptan değilsin"
+          title="Burası kaptanlara özel"
           body="Kaptan olduğun bir takım yok. Kendi takımını kurarsan bu panel açılır."
-          actionLabel="Takım oluştur"
+          actionLabel="Takımını kur"
           onAction={() => router.push('/join-team')}
         />
       ) : (
@@ -271,7 +271,7 @@ export default function KaptanScreen() {
             ) : submissions.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="videocam-outline" size={40} color={colors.textFaint} />
-                <Text style={styles.emptyText}>Henüz kanıt yok.</Text>
+                <Text style={styles.emptyText}>Kanıt yok. Takım daha kımıldamadı.</Text>
               </View>
             ) : null
           }

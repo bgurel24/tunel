@@ -17,12 +17,14 @@ import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
 import { SessionCard } from '@/components/SessionCard';
 import { FeedSkeleton } from '@/components/Skeleton';
+import { StarterChecklist } from '@/components/StarterChecklist';
 import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
 import { getCrew, type CrewMember } from '@/lib/crew';
 import { getFeed } from '@/lib/posts';
 import { getActiveSessions, type GymSession } from '@/lib/sessions';
+import { getStarterState, type StarterState } from '@/lib/starter';
 import type { FeedKind, Post } from '@/lib/types';
 import { colors, font, fontSize, radius, spacing } from '@/theme';
 
@@ -42,6 +44,7 @@ export default function FeedScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [sessions, setSessions] = useState<GymSession[]>([]);
+  const [starter, setStarter] = useState<StarterState | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [focused, setFocused] = useState(true);
@@ -56,13 +59,16 @@ export default function FeedScreen() {
     useCallback(() => {
       let active = true;
       setFocused(true);
-      Promise.all([getFeed(feed), getCrew(), getActiveSessions()]).then(([data, members, calls]) => {
-        if (!active) return;
-        setPosts(data);
-        setCrew(members);
-        setSessions(calls);
-        setLoading(false);
-      });
+      Promise.all([getFeed(feed), getCrew(), getActiveSessions(), getStarterState()]).then(
+        ([data, members, calls, setup]) => {
+          if (!active) return;
+          setPosts(data);
+          setCrew(members);
+          setSessions(calls);
+          setStarter(setup);
+          setLoading(false);
+        }
+      );
       return () => {
         active = false;
         setFocused(false);
@@ -72,10 +78,16 @@ export default function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    const [data, members, calls] = await Promise.all([getFeed(feed), getCrew(), getActiveSessions()]);
+    const [data, members, calls, setup] = await Promise.all([
+      getFeed(feed),
+      getCrew(),
+      getActiveSessions(),
+      getStarterState(),
+    ]);
     setPosts(data);
     setCrew(members);
     setSessions(calls);
+    setStarter(setup);
     setRefreshing(false);
   }, [feed]);
 
@@ -91,6 +103,8 @@ export default function FeedScreen() {
   const listHeader = (
     <View>
       <CrewStrip crew={crew} />
+
+      {starter && !starter.done && <StarterChecklist state={starter} />}
 
       {sessions.map((s) => (
         <SessionCard key={s.id} session={s} onChanged={reloadSessions} />
@@ -151,13 +165,13 @@ export default function FeedScreen() {
           ) : (
             <EmptyState
               icon={feed === 'takim' ? 'barbell-outline' : 'planet-outline'}
-              title="Henüz paylaşım yok"
+              title={feed === 'takim' ? 'Takım sessiz' : 'Ortalık sakin'}
               body={
                 feed === 'takim'
-                  ? 'Takım arkadaşların pump attıkça burada görünecek. İlk hamleyi sen yap.'
-                  : 'Sosyal akış boş görünüyor. Paylaşımını sosyale de açarsan burada yer alır.'
+                  ? 'Takım arkadaşların pump attıkça burası dolacak. İlk hamleyi sen yap.'
+                  : 'Sosyal akışta kimse yok. Paylaşımını sosyale açarsan seni burada görürler.'
               }
-              actionLabel="Paylaşım yap"
+              actionLabel="Bir kare at"
               onAction={() => router.push('/paylas')}
             />
           )

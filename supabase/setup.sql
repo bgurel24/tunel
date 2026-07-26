@@ -145,6 +145,9 @@ create table if not exists public.posts (
   created_at timestamptz not null default now()
 );
 
+-- Antrenman etiketi (göğüs / bacak / kardiyo ...) — paylaşımda seçilir.
+alter table public.posts add column if not exists workout_tag text;
+
 create index if not exists posts_created_idx on public.posts (created_at desc);
 create index if not exists posts_social_idx on public.posts (shared_social, created_at desc);
 
