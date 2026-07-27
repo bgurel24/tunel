@@ -277,6 +277,7 @@ const tr = {
   'auth.created': 'Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa gelen kutunu kontrol et.',
   // Paylaş ekranı
   'share.title': 'Yeni paylaşım',
+  'share.permissionTitle': 'Kamera izni gerekli',
   'share.permission': 'Tünel anlık paylaşım için kameraya erişir. Galeriden yükleme yok — sadece o an çekim.',
   'share.allow': 'İzin ver',
   'share.live': 'canlı',
@@ -319,6 +320,10 @@ const tr = {
   'captain.noTeamAction': 'Takımını kur',
   'captain.pending': 'Bekleyen onay',
   'captain.members': 'Üye',
+  'captain.title': 'Kaptan paneli',
+  'captain.approve': 'Onayla',
+  'captain.reject': 'Reddet',
+  'captain.noVideo': 'Video yok',
   'captain.tabTasks': 'Görevler',
   'captain.tabProofs': 'Kanıtlar',
   'captain.tabMissing': 'Eksikler',
@@ -333,6 +338,7 @@ const tr = {
   'captain.legendMissing': 'eksik',
 
   // Yorumlar
+  'comments.title': 'Yorumlar',
   'comments.empty': 'İlk yorumu sen yaz.',
   'comments.send': 'Gönder',
 
@@ -677,6 +683,7 @@ const en: Record<TranslationKey, string> = {
   'auth.passwordShort': 'Password must be at least 6 characters.',
   'auth.created': 'Account created. Check your inbox if email confirmation is on.',
   'share.title': 'New post',
+  'share.permissionTitle': 'Camera access needed',
   'share.permission': 'Tünel uses the camera for in-the-moment posts. No gallery uploads — only what you shoot now.',
   'share.allow': 'Allow',
   'share.live': 'live',
@@ -717,6 +724,10 @@ const en: Record<TranslationKey, string> = {
   'captain.noTeamAction': 'Start your team',
   'captain.pending': 'Waiting for approval',
   'captain.members': 'Members',
+  'captain.title': 'Captain panel',
+  'captain.approve': 'Approve',
+  'captain.reject': 'Reject',
+  'captain.noVideo': 'No video',
   'captain.tabTasks': 'Tasks',
   'captain.tabProofs': 'Proofs',
   'captain.tabMissing': 'Missing',
@@ -730,6 +741,7 @@ const en: Record<TranslationKey, string> = {
   'captain.legendPending': 'pending',
   'captain.legendMissing': 'missing',
 
+  'comments.title': 'Comments',
   'comments.empty': 'Be the first to comment.',
   'comments.send': 'Send',
 

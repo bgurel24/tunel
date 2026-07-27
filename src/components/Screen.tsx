@@ -1,7 +1,7 @@
 // Koyu güvenli-alan ekran sarmalayıcı. Tüm ekranların ortak zemini.
 
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
 import { makeStyles, spacing, useThemeTick } from '@/theme';

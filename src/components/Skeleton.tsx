@@ -106,7 +106,7 @@ export function ListSkeleton({ count = 5, height = 62 }: { count?: number; heigh
   );
 }
 
-const styles = makeStyles((colors) => ({
+const styles = makeStyles(() => ({
   post: { marginBottom: spacing.xl },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
 }));

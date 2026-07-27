@@ -3,7 +3,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View, } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';

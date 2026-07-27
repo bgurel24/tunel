@@ -115,7 +115,6 @@ const KIND_ICON: Record<ToastKind, keyof typeof Ionicons.glyphMap> = {
   info: 'information-circle',
 };
 
-// Renkler render anında okunur — tema değişince güncel kalsın.
 function kindColors(kind: ToastKind) {
   if (kind === 'success') return { color: colors.success, bg: colors.successBg };
   if (kind === 'error') return { color: colors.danger, bg: colors.dangerBg };

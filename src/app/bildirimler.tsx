@@ -3,7 +3,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { ActivityIndicator, Pressable, StyleSheet, View, } from 'react-native';
+import { ActivityIndicator, Pressable, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { OutlineButton } from '@/components/GradientButton';

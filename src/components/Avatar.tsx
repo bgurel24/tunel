@@ -2,7 +2,7 @@
 
 import { Image, type ImageStyle } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
+import { type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { avatarGradient, initialsOf } from '@/lib/avatar';
@@ -48,6 +48,6 @@ export function Avatar({
   );
 }
 
-const styles = makeStyles((colors) => ({
+const styles = makeStyles(() => ({
   center: { alignItems: 'center', justifyContent: 'center' },
 }));

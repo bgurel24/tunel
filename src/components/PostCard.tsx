@@ -26,7 +26,6 @@ import { useT } from '@/lib/i18n';
 import { tagKeyOf } from '@/lib/workout-tags';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
-import { avatarGradient } from '@/lib/avatar';
 import { deletePost } from '@/lib/posts';
 import { toggleReaction } from '@/lib/social';
 import type { Post } from '@/lib/types';
@@ -68,7 +67,6 @@ export function PostCard({
 
   const isMine = !!post.authorId && post.authorId === session?.user?.id;
   const mediaAspect = post.videoUrl ? 0.8 : aspect;
-  const avatarColors = avatarGradient(post.username);
   const burst = useSharedValue(0);
   const heartPop = useSharedValue(1);
   const lastTap = useRef(0);
@@ -342,8 +340,6 @@ const styles = makeStyles((colors) => ({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  avatar: { width: 38, height: 38, borderRadius: 19, alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: fontSize.sm, fontWeight: '600' },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   username: { color: colors.text, fontSize: fontSize.md, fontWeight: '600' },
   tag: {

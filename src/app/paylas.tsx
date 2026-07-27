@@ -77,7 +77,7 @@ export default function PaylasScreen() {
       <SafeAreaView style={styles.fill}>
         <View style={styles.permBox}>
           <Ionicons name="camera-outline" size={48} color={colors.accent} />
-          <Text style={styles.permTitle}>Kamera izni gerekli</Text>
+          <Text style={styles.permTitle}>{t('share.permissionTitle')}</Text>
           <Text style={styles.permBody}>
             {t('share.permission')}
           </Text>

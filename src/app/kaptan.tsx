@@ -54,10 +54,10 @@ const CELL: Record<GridStatus, { icon: keyof typeof Ionicons.glyphMap; color: st
 
 const DECIDED: Record<
   'approved' | 'rejected',
-  { color: () => string; bg: () => string; label: TranslationKey }
+  { color: string; bg: string; label: TranslationKey }
 > = {
-  approved: { color: () => colors.success, bg: () => colors.successBg, label: 'status.approved' },
-  rejected: { color: () => colors.danger, bg: () => colors.dangerBg, label: 'status.rejected' },
+  approved: { color: colors.success, bg: colors.successBg, label: 'status.approved' },
+  rejected: { color: colors.danger, bg: colors.dangerBg, label: 'status.rejected' },
 };
 
 type Tab = 'gorevler' | 'onaylar' | 'eksikler';
@@ -166,7 +166,7 @@ export default function KaptanScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Kaptan paneli</Text>
+        <Text style={styles.title}>{t('captain.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 
@@ -264,8 +264,8 @@ export default function KaptanScreen() {
                   <Text style={styles.subTask}>{s.taskTitle}</Text>
                 </View>
                 {s.status !== 'pending' && (
-                  <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg() }]}>
-                    <Text style={[styles.decidedText, { color: DECIDED[s.status].color() }]}>
+                  <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg }]}>
+                    <Text style={[styles.decidedText, { color: DECIDED[s.status].color }]}>
                       {t(DECIDED[s.status].label)}
                     </Text>
                   </View>
@@ -281,7 +281,7 @@ export default function KaptanScreen() {
                 />
               ) : (
                 <View style={styles.videoNone}>
-                  <Text style={styles.note}>Video yok</Text>
+                  <Text style={styles.note}>{t('captain.noVideo')}</Text>
                 </View>
               )}
 
@@ -297,12 +297,12 @@ export default function KaptanScreen() {
                       style={styles.approveBtn}
                     >
                       <Ionicons name="checkmark" size={16} color="#fff" />
-                      <Text style={styles.approveText}>Onayla</Text>
+                      <Text style={styles.approveText}>{t('captain.approve')}</Text>
                     </LinearGradient>
                   </Pressable>
                   <Pressable style={styles.rejectBtn} onPress={() => decide(s.id, false)}>
                     <Ionicons name="close" size={16} color={colors.danger} />
-                    <Text style={styles.rejectText}>Reddet</Text>
+                    <Text style={styles.rejectText}>{t('captain.reject')}</Text>
                   </Pressable>
                 </View>
               )}
@@ -404,7 +404,6 @@ const styles = makeStyles((colors) => ({
     paddingBottom: spacing.md,
   },
   title: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.md, paddingTop: spacing.xxl },
   chip: {
     paddingHorizontal: spacing.md,
     paddingVertical: 7,

@@ -6,7 +6,7 @@ import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
-import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
+import { fontSize, makeStyles, radius } from '@/theme';
 
 type Option<T extends string> = { key: T; label: string };
 

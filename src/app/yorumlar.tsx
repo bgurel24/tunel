@@ -71,7 +71,7 @@ export default function YorumlarScreen() {
         <Pressable onPress={() => router.back()} hitSlop={12}>
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
-        <Text style={styles.title}>Yorumlar</Text>
+        <Text style={styles.title}>{t('comments.title')}</Text>
         <View style={{ width: 26 }} />
       </View>
 

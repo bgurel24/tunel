@@ -2,7 +2,7 @@
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { useT } from '@/lib/i18n';

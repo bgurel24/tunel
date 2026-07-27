@@ -10,7 +10,7 @@ import Svg, {
   Stop,
   Text as SvgText,
 } from 'react-native-svg';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { colors, font, makeStyles, useThemeTick } from '@/theme';
 
@@ -137,7 +137,7 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
   );
 }
 
-const styles = makeStyles((colors) => ({
+const styles = makeStyles(() => ({
   wrap: {
     alignItems: 'center',
     justifyContent: 'center',

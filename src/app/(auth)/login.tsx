@@ -2,7 +2,7 @@
 
 import { Link, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
@@ -11,7 +11,7 @@ import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
-import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
+import { fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function LoginScreen() {
   useThemeTick();

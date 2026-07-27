@@ -1,11 +1,11 @@
 // Marka gradyanlı ana buton. Yükleme durumunda spinner gösterir.
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { ActivityIndicator, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
+import { ActivityIndicator, View, type StyleProp, type ViewStyle } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
-import { colors, fontSize, gradientColors, gradientEnd, gradientStart, makeStyles, radius, useThemeTick } from '@/theme';
+import { fontSize, gradientColors, gradientEnd, gradientStart, makeStyles, radius, useThemeTick } from '@/theme';
 
 type Props = {
   label: string;

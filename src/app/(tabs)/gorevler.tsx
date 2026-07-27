@@ -18,28 +18,24 @@ import { getTeamTasks, type SubmissionStatus, type TeamTask } from '@/lib/tasks'
 import { getMyTeams, type MyTeam } from '@/lib/teams';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
-// Renkler render anında okunur (tema değişebilir), etiket çeviri anahtarı.
 const STATUS: Record<
   Exclude<SubmissionStatus, 'none'>,
-  { color: () => string; bg: () => string; label: TranslationKey; icon: keyof typeof Ionicons.glyphMap }
+  { color: string; bg: string; label: TranslationKey }
 > = {
   approved: {
-    color: () => colors.success,
-    bg: () => colors.successBg,
+    color: colors.success,
+    bg: colors.successBg,
     label: 'status.approved',
-    icon: 'checkmark',
   },
   pending: {
-    color: () => colors.warning,
-    bg: () => colors.warningBg,
+    color: colors.warning,
+    bg: colors.warningBg,
     label: 'status.pending',
-    icon: 'time-outline',
   },
   rejected: {
-    color: () => colors.danger,
-    bg: () => colors.dangerBg,
+    color: colors.danger,
+    bg: colors.dangerBg,
     label: 'status.rejected',
-    icon: 'close',
   },
 };
 
@@ -213,8 +209,8 @@ export default function GorevlerScreen() {
                   </Text>
                 </Pressable>
               ) : (
-                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg() }]}>
-                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color() }]}>
+                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
+                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
                     {t(STATUS[task.myStatus].label)}
                   </Text>
                 </View>
@@ -242,7 +238,6 @@ export default function GorevlerScreen() {
 
 const styles = makeStyles((colors) => ({
   content: { paddingHorizontal: spacing.xl, paddingBottom: spacing.xxl },
-  center: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: spacing.sm, paddingTop: spacing.xxl, paddingHorizontal: spacing.md },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -319,6 +314,5 @@ const styles = makeStyles((colors) => ({
     marginTop: spacing.xl,
   },
   infoText: { color: colors.textDim, fontSize: fontSize.xs, flex: 1 },
-  emptyTitle: { color: colors.text, fontSize: fontSize.lg, fontWeight: '500' },
   emptyBody: { color: colors.textDim, fontSize: fontSize.sm, textAlign: 'center', lineHeight: 20 },
 }));

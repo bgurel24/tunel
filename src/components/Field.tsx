@@ -1,7 +1,7 @@
 // Temalı metin girişi (etiket + input).
 
 import { useState } from 'react';
-import { StyleSheet, TextInput, View, type TextInputProps, } from 'react-native';
+import { TextInput, View, type TextInputProps } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';

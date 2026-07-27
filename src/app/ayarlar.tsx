@@ -28,7 +28,7 @@ import { Touchable } from '@/components/Touchable';
 import { deleteMyAccount, updatePassword, updateUsername } from '@/lib/account';
 import { useAuth } from '@/lib/auth';
 import { Haptics } from '@/lib/haptics';
-import { useT, type TranslationKey } from '@/lib/i18n';
+import { useT } from '@/lib/i18n';
 import { getMyProfile, setProfilePrivacy } from '@/lib/profile';
 import { resetPrefs, setPref, usePrefs } from '@/lib/prefs';
 import {

@@ -1,8 +1,8 @@
 // Kayıt ekranı — kullanıcı adı + e-posta + şifre.
 
-import { Link, useRouter } from 'expo-router';
+import { Link } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View, } from 'react-native';
+import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
@@ -11,13 +11,12 @@ import { Logo } from '@/components/Logo';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
-import { colors, fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
+import { fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
 export default function RegisterScreen() {
   useThemeTick();
   const t = useT();
   const { signUp } = useAuth();
-  const router = useRouter();
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');

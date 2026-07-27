@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, StyleSheet, View, } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';

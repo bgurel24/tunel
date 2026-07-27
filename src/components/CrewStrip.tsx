@@ -4,7 +4,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, View } from 'react-native';
 import Animated, { FadeIn } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
@@ -18,7 +18,6 @@ import {
   gradientEnd,
   gradientStart,
   makeStyles,
-  radius,
   spacing,
   useThemeTick,
 } from '@/theme';
