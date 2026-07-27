@@ -19,8 +19,17 @@ export type MemberRow = {
   statuses: GridStatus[];
 };
 
+export type CaptainTask = {
+  id: string;
+  title: string;
+  points: number;
+  /** Kaç üye bu görevi onaylattı — kaptan listede tek bakışta görsün. */
+  approvedCount: number;
+};
+
 export type CaptainData = {
   taskCols: string[];
+  tasks: CaptainTask[];
   memberCount: number;
   submissions: Submission[];
   members: MemberRow[];
@@ -31,10 +40,10 @@ const ORDER: Record<SubStatus, number> = { pending: 0, approved: 1, rejected: 2 
 export async function getCaptainData(teamId: string): Promise<CaptainData> {
   const { data: tasksData } = await supabase
     .from('tasks')
-    .select('id, title')
+    .select('id, title, points')
     .eq('team_id', teamId)
     .order('created_at', { ascending: true });
-  const tasks = (tasksData ?? []) as { id: string; title: string }[];
+  const tasks = (tasksData ?? []) as { id: string; title: string; points: number | null }[];
   const taskIds = tasks.map((t) => t.id);
 
   const { data: membersData } = await supabase
@@ -77,6 +86,12 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
 
   return {
     taskCols: tasks.map((t) => t.title.slice(0, 4)),
+    tasks: tasks.map((t) => ({
+      id: String(t.id),
+      title: t.title,
+      points: t.points ?? 10,
+      approvedCount: subs.filter((s) => s.task_id === t.id && s.status === 'approved').length,
+    })),
     memberCount: members.length,
     submissions,
     members: memberRows,

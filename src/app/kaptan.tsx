@@ -1,11 +1,21 @@
-// Kaptan paneli — kanıtlar (feed gibi kendiliğinden oynayan video + onayla/reddet)
-// ve üye/görev eksik ızgarası.
+// Kaptan paneli — görev yönetimi (ekle/sil), kanıtlar (feed gibi kendiliğinden
+// oynayan video + onayla/reddet) ve üye/görev eksik ızgarası.
+//
+// Görev ekleme burada; Görevler sekmesi üyenin "yapılacaklar" ekranı olarak kaldı.
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { FlatList, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import {
+  ActivityIndicator,
+  FlatList,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  View,
+} from 'react-native';
 
 import { useT, type TranslationKey } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
@@ -18,8 +28,10 @@ import {
   decideSubmission,
   getCaptainData,
   type CaptainData,
+  type CaptainTask,
   type GridStatus,
 } from '@/lib/captain';
+import { createTask, deleteTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
 import {
   colors,
@@ -48,21 +60,29 @@ const DECIDED: Record<
   rejected: { color: () => colors.danger, bg: () => colors.dangerBg, label: 'status.rejected' },
 };
 
-type Tab = 'onaylar' | 'eksikler';
+type Tab = 'gorevler' | 'onaylar' | 'eksikler';
+
+const TABS: { key: Tab; label: TranslationKey }[] = [
+  { key: 'gorevler', label: 'captain.tabTasks' },
+  { key: 'onaylar', label: 'captain.tabProofs' },
+  { key: 'eksikler', label: 'captain.tabMissing' },
+];
 
 export default function KaptanScreen() {
   useThemeTick();
   const t = useT();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
-  const { toast, celebrate } = useToast();
+  const { toast, celebrate, confirm } = useToast();
 
   const [teams, setTeams] = useState<MyTeam[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const selRef = useRef<string | null>(params.teamId ?? null);
   const [data, setData] = useState<CaptainData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [tab, setTab] = useState<Tab>('onaylar');
+  const [tab, setTab] = useState<Tab>('gorevler');
+  const [newTitle, setNewTitle] = useState('');
+  const [adding, setAdding] = useState(false);
 
   const focused = useScreenFocused();
   const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
@@ -114,6 +134,32 @@ export default function KaptanScreen() {
     if (selectedId) load(selectedId);
   };
 
+  // Ekledikten sonra kutu ve klavye açık kalır — arka arkaya görev girmek kolay olsun.
+  const addTask = async () => {
+    if (!selectedId || !newTitle.trim() || adding) return;
+    setAdding(true);
+    const { error } = await createTask(selectedId, newTitle);
+    setAdding(false);
+    if (error) return toast(error, 'error');
+    setNewTitle('');
+    toast(t('tasks.added'));
+    load(selectedId);
+  };
+
+  const removeTask = async (task: CaptainTask) => {
+    const ok = await confirm({
+      title: t('tasks.deleteTitle'),
+      message: t('tasks.deleteMessage', { title: task.title }),
+      confirmLabel: t('common.delete'),
+      destructive: true,
+    });
+    if (!ok) return;
+    const { error } = await deleteTask(task.id);
+    if (error) return toast(error, 'error');
+    toast(t('tasks.deleted'), 'info');
+    if (selectedId) load(selectedId);
+  };
+
   return (
     <Screen>
       <View style={styles.header}>
@@ -141,6 +187,8 @@ export default function KaptanScreen() {
           viewabilityConfigCallbackPairs={viewabilityConfigCallbackPairs}
           contentContainerStyle={{ paddingBottom: spacing.xxl }}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          automaticallyAdjustKeyboardInsets
           ListHeaderComponent={
             <View>
               {teams.length > 1 && (
@@ -169,18 +217,40 @@ export default function KaptanScreen() {
               </View>
 
               <View style={styles.toggle}>
-                {(['onaylar', 'eksikler'] as const).map((key) => (
+                {TABS.map(({ key, label }) => (
                   <Pressable
                     key={key}
                     style={[styles.segment, tab === key && styles.segmentActive]}
                     onPress={() => setTab(key)}
                   >
                     <Text style={[styles.segmentText, tab === key && styles.segmentTextActive]}>
-                      {t(key === 'onaylar' ? 'captain.tabProofs' : 'captain.tabMissing')}
+                      {t(label)}
                     </Text>
                   </Pressable>
                 ))}
               </View>
+
+              {tab === 'gorevler' && (
+                <View style={styles.addRow}>
+                  <TextInput
+                    value={newTitle}
+                    onChangeText={setNewTitle}
+                    placeholder={t('tasks.addPlaceholder')}
+                    placeholderTextColor={colors.textFaint}
+                    style={styles.addInput}
+                    returnKeyType="done"
+                    submitBehavior="submit"
+                    onSubmitEditing={addTask}
+                  />
+                  <Pressable style={styles.addBtn} onPress={addTask} disabled={adding}>
+                    {adding ? (
+                      <ActivityIndicator color="#fff" size="small" />
+                    ) : (
+                      <Ionicons name="add" size={22} color="#fff" />
+                    )}
+                  </Pressable>
+                </View>
+              )}
             </View>
           }
           renderItem={({ item: s }) => (
@@ -239,7 +309,34 @@ export default function KaptanScreen() {
             </View>
           )}
           ListFooterComponent={
-            tab === 'eksikler' ? (
+            tab === 'gorevler' ? (
+              <View>
+                {!data || data.tasks.length === 0 ? (
+                  <Text style={styles.emptyText}>{t('captain.noTasks')}</Text>
+                ) : (
+                  <>
+                    {data.tasks.map((task, i) => (
+                      <View key={task.id} style={styles.taskRow}>
+                        <View style={styles.taskIcon}>
+                          <Text style={styles.taskOrder}>{i + 1}</Text>
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.taskTitle}>{task.title}</Text>
+                          <Text style={styles.taskSub}>
+                            {t('tasks.points', { n: task.points })} ·{' '}
+                            {t('captain.taskDone', { n: task.approvedCount })}
+                          </Text>
+                        </View>
+                        <Pressable onPress={() => removeTask(task)} hitSlop={10}>
+                          <Ionicons name="trash-outline" size={17} color={colors.textFaint} />
+                        </Pressable>
+                      </View>
+                    ))}
+                    <Text style={styles.addHint}>{t('tasks.addHint')}</Text>
+                  </>
+                )}
+              </View>
+            ) : tab === 'eksikler' ? (
               <View>
                 {!data || data.members.length === 0 ? (
                   <Text style={styles.emptyText}>{t('captain.noMembers')}</Text>
@@ -333,6 +430,46 @@ const styles = makeStyles((colors) => ({
   segmentActive: { backgroundColor: colors.surface2 },
   segmentText: { color: colors.textDim, fontSize: fontSize.sm },
   segmentTextActive: { color: colors.text, fontWeight: '600' },
+
+  addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
+  addInput: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 12,
+    color: colors.text,
+    fontSize: fontSize.md,
+  },
+  addBtn: {
+    width: 48,
+    borderRadius: radius.md,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addHint: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: spacing.md },
+  taskRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.lineSoft,
+  },
+  taskIcon: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
+    backgroundColor: colors.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  taskOrder: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
+  taskTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
+  taskSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xxl },
   emptyText: { color: colors.textDim, fontSize: fontSize.md, textAlign: 'center' },
   subCard: {

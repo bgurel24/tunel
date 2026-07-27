@@ -36,7 +36,6 @@ import {
   fontSize,
   makeStyles,
   radius,
-  shadow,
   spacing,
   tabularNums,
   useThemeTick,
@@ -202,7 +201,7 @@ export default function ProfilScreen() {
         {/* Kapak */}
         <View style={[styles.cover, { height: COVER_HEIGHT + insets.top }]}>
           <LinearGradient
-            colors={[withAlpha(colors.brandFrom, 0.32), withAlpha(colors.brandTo, 0.1), 'transparent']}
+            colors={[withAlpha(colors.brandFrom, 0.16), withAlpha(colors.brandTo, 0.05), 'transparent']}
             start={{ x: 0.1, y: 0 }}
             end={{ x: 0.9, y: 1 }}
             style={StyleSheet.absoluteFill}
@@ -223,7 +222,7 @@ export default function ProfilScreen() {
           {/* Kimlik */}
           <View style={styles.identity}>
             <Touchable style={styles.avatarRing} onPress={changeAvatar} scaleTo={0.93}>
-              <Avatar username={username} url={avatarUrl} size={AVATAR} style={shadow.glowSoft} />
+              <Avatar username={username} url={avatarUrl} size={AVATAR} />
               <View style={styles.avatarEdit}>
                 {uploadingAvatar ? (
                   <ActivityIndicator color="#fff" size="small" />
@@ -457,7 +456,7 @@ const styles = makeStyles((colors) => ({
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
-  statBoxHot: { backgroundColor: colors.accentBg, borderColor: 'rgba(255,138,61,0.35)' },
+  statBoxHot: { backgroundColor: colors.accentBg, borderColor: withAlpha(colors.accent, 0.3) },
   statTop: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   statNum: { color: colors.text, fontSize: fontSize.xl, fontFamily: font.displayBold, ...tabularNums },
   statLabel: { color: colors.textDim, fontSize: fontSize.xs, marginTop: 2 },
@@ -468,8 +467,6 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     gap: 5,
     backgroundColor: colors.accentBg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: 'rgba(255,138,61,0.25)',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: radius.pill,
@@ -518,7 +515,9 @@ const styles = makeStyles((colors) => ({
   },
   emptyTeams: {
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     padding: spacing.lg,
     gap: 4,
   },
@@ -529,7 +528,9 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     gap: spacing.md,
     backgroundColor: colors.surface,
-    borderRadius: radius.md,
+    borderRadius: radius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     padding: spacing.md,
     marginBottom: spacing.sm,
   },

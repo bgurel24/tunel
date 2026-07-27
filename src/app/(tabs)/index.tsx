@@ -27,7 +27,7 @@ import { getFeed } from '@/lib/posts';
 import { getActiveSessions, type GymSession } from '@/lib/sessions';
 import { getStarterState, type StarterState } from '@/lib/starter';
 import type { FeedKind, Post } from '@/lib/types';
-import { colors, font, fontSize, makeStyles, radius, spacing, themeInfo, useThemeTick } from '@/theme';
+import { colors, font, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const HEADER_HEIGHT = 52;
 
@@ -180,7 +180,7 @@ export default function FeedScreen() {
       />
 
       <View style={[styles.header, { height: insets.top + HEADER_HEIGHT, paddingTop: insets.top }]}>
-        <BlurView intensity={40} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
+        <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
         <View style={[StyleSheet.absoluteFill, styles.headerTint]} />
         <View style={styles.headerRow}>
           <Logo size={26} showWordmark={false} />

@@ -18,7 +18,6 @@ import {
   colors,
   font,
   fontSize,
-  gradientColors,
   gradientEnd,
   gradientStart,
   makeStyles,
@@ -82,21 +81,11 @@ export function SessionCard({
   const goingCount = session.going.length;
 
   return (
-    <LinearGradient
-      colors={[colors.brandBg, 'transparent']}
-      start={{ x: 0, y: 0 }}
-      end={{ x: 1, y: 1 }}
-      style={[styles.card, shadow.card]}
-    >
+    <View style={[styles.card, shadow.card]}>
       <View style={styles.head}>
-        <LinearGradient
-          colors={gradientColors}
-          start={gradientStart}
-          end={gradientEnd}
-          style={[styles.bolt, shadow.glowSoft]}
-        >
-          <Ionicons name="flash" size={16} color="#fff" />
-        </LinearGradient>
+        <View style={styles.bolt}>
+          <Ionicons name="flash" size={16} color={colors.accent} />
+        </View>
 
         <View style={{ flex: 1 }}>
           <Text style={styles.host}>
@@ -184,21 +173,28 @@ export function SessionCard({
           </Touchable>
         </View>
       )}
-    </LinearGradient>
+    </View>
   );
 }
 
 const styles = makeStyles((colors) => ({
   card: {
     borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.brandBg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: spacing.lg,
     marginBottom: spacing.md,
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  bolt: { width: 30, height: 30, borderRadius: 15, alignItems: 'center', justifyContent: 'center' },
+  bolt: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: colors.accentBg,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   host: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
   team: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 1 },
   when: {

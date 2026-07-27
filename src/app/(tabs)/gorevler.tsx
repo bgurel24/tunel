@@ -1,10 +1,10 @@
-// Görevler — seçili takımın gerçek görevleri, durumları, kanıt yükleme.
-// Kaptansan görev ekleyip silebilirsin.
+// Görevler — seçili takımın görevleri, durumları, kanıt yükleme.
+// Bu ekran üyenin "yapılacaklar" listesi; görev ekleme/silme kaptan panelinde.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useRef, useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 
 import { useT, type TranslationKey } from '@/lib/i18n';
 import { EmptyState } from '@/components/EmptyState';
@@ -13,15 +13,8 @@ import { Screen } from '@/components/Screen';
 import { ListSkeleton, Skeleton } from '@/components/Skeleton';
 import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
-import { useToast } from '@/components/Toast';
 import { useAuth } from '@/lib/auth';
-import {
-  createTask,
-  deleteTask,
-  getTeamTasks,
-  type SubmissionStatus,
-  type TeamTask,
-} from '@/lib/tasks';
+import { getTeamTasks, type SubmissionStatus, type TeamTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
@@ -55,7 +48,6 @@ export default function GorevlerScreen() {
   const t = useT();
   const router = useRouter();
   const bottomPad = useTabBarPadding();
-  const { toast, confirm } = useToast();
   const { session } = useAuth();
   const userId = session?.user?.id ?? '';
 
@@ -64,11 +56,6 @@ export default function GorevlerScreen() {
   const selRef = useRef<string | null>(null);
   const [tasks, setTasks] = useState<TeamTask[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newTitle, setNewTitle] = useState('');
-  const [adding, setAdding] = useState(false);
-  // Ekleme kutusu listenin ÜSTÜNDE ve sabit yerde duruyor: görev sayısı artınca
-  // aşağı kayıp klavyenin altında kalmasın diye.
-  const [showAdd, setShowAdd] = useState(false);
 
   const selectedTeam = teams.find((t) => t.id === selectedId) ?? null;
   const isCaptain = selectedTeam?.role === 'captain';
@@ -113,34 +100,6 @@ export default function GorevlerScreen() {
     setLoading(false);
   };
 
-  // Ekledikten sonra kutu açık ve klavye kalkmadan kalır — arka arkaya görev girmek kolay olsun.
-  const addTask = async () => {
-    if (!selectedTeam || !newTitle.trim() || adding) return;
-    setAdding(true);
-    const { error } = await createTask(selectedTeam.id, newTitle);
-    setAdding(false);
-    if (error) return toast(error, 'error');
-    setNewTitle('');
-    toast(t('tasks.added'));
-    await loadTasks(selectedTeam.id);
-  };
-
-  const removeTask = async (task: TeamTask) => {
-    const ok = await confirm({
-      title: t('tasks.deleteTitle'),
-      message: t('tasks.deleteMessage', { title: task.title }),
-      confirmLabel: t('common.delete'),
-      destructive: true,
-    });
-    if (!ok) return;
-    const { error } = await deleteTask(task.id);
-    if (error) toast(error, 'error');
-    else if (selectedTeam) {
-      toast(t('tasks.deleted'), 'info');
-      loadTasks(selectedTeam.id);
-    }
-  };
-
   const total = tasks.length;
   const approved = tasks.filter((t) => t.myStatus === 'approved').length;
   const progress = total > 0 ? approved / total : 0;
@@ -177,21 +136,10 @@ export default function GorevlerScreen() {
       <ScrollView
         contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        automaticallyAdjustKeyboardInsets
       >
         <View style={styles.header}>
           <Text style={styles.title}>{t('tasks.title')}</Text>
           <View style={styles.headerActions}>
-            {isCaptain && (
-              <Pressable
-                style={[styles.iconBtn, showAdd && styles.iconBtnActive]}
-                onPress={() => setShowAdd((v) => !v)}
-                hitSlop={8}
-              >
-                <Ionicons name={showAdd ? 'close' : 'add'} size={22} color={colors.accent} />
-              </Pressable>
-            )}
             <Pressable
               style={styles.iconBtn}
               onPress={() => router.push({ pathname: '/liderlik', params: { teamId: selectedId ?? '' } })}
@@ -235,32 +183,6 @@ export default function GorevlerScreen() {
           </>
         )}
 
-        {isCaptain && showAdd && (
-          <View style={styles.addBox}>
-            <View style={styles.addRow}>
-              <TextInput
-                value={newTitle}
-                onChangeText={setNewTitle}
-                placeholder={t('tasks.addPlaceholder')}
-                placeholderTextColor={colors.textFaint}
-                style={styles.addInput}
-                autoFocus
-                returnKeyType="done"
-                submitBehavior="submit"
-                onSubmitEditing={addTask}
-              />
-              <Pressable style={styles.addBtn} onPress={addTask} disabled={adding}>
-                {adding ? (
-                  <ActivityIndicator color="#fff" size="small" />
-                ) : (
-                  <Ionicons name="add" size={22} color="#fff" />
-                )}
-              </Pressable>
-            </View>
-            <Text style={styles.addHint}>{t('tasks.addHint')}</Text>
-          </View>
-        )}
-
         {tasks.length === 0 ? (
           <View style={styles.noTasks}>
             <Text style={styles.emptyBody}>
@@ -296,12 +218,6 @@ export default function GorevlerScreen() {
                     {t(STATUS[task.myStatus].label)}
                   </Text>
                 </View>
-              )}
-
-              {isCaptain && (
-                <Pressable onPress={() => removeTask(task)} hitSlop={8} style={{ marginLeft: 8 }}>
-                  <Ionicons name="trash-outline" size={16} color={colors.textFaint} />
-                </Pressable>
               )}
             </View>
           ))
@@ -344,7 +260,6 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconBtnActive: { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.accent },
   chips: { marginBottom: spacing.sm },
   chip: {
     paddingHorizontal: spacing.md,
@@ -394,27 +309,6 @@ const styles = makeStyles((colors) => ({
   uploadText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '500' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   statusText: { fontSize: fontSize.xs, fontWeight: '500' },
-  addBox: { marginBottom: spacing.lg },
-  addHint: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: spacing.sm },
-  addRow: { flexDirection: 'row', gap: spacing.sm },
-  addInput: {
-    flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: radius.md,
-    paddingHorizontal: spacing.md,
-    paddingVertical: 12,
-    color: colors.text,
-    fontSize: fontSize.md,
-  },
-  addBtn: {
-    width: 48,
-    borderRadius: radius.md,
-    backgroundColor: colors.accent,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   info: {
     flexDirection: 'row',
     alignItems: 'center',

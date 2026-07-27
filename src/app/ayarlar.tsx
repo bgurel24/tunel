@@ -1,12 +1,11 @@
-// Ayarlar — görünüm (tema + vurgu rengi), dil, antrenman, akış, bildirimler,
-// his (titreşim/kutlama), hesap ve uygulama.
+// Ayarlar — dil, antrenman, akış, bildirimler, his (titreşim/kutlama),
+// hesap ve uygulama. (Tema tek ve sabit: koyu.)
 //
 // Tercihler src/lib/prefs.ts'te; değişiklik anında uygulanır ve kaydedilir.
 
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { Image } from 'expo-image';
-import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import {
@@ -33,19 +32,14 @@ import { useT, type TranslationKey } from '@/lib/i18n';
 import { getMyProfile, setProfilePrivacy } from '@/lib/profile';
 import { resetPrefs, setPref, usePrefs } from '@/lib/prefs';
 import {
-  ACCENTS,
-  ACCENT_ORDER,
   colors,
   font,
   fontSize,
-  gradientEnd,
-  gradientStart,
   makeStyles,
   radius,
   shadow,
   spacing,
   useThemeTick,
-  type AccentId,
 } from '@/theme';
 
 const FEEDBACK_EMAIL = 'burakgurel81@gmail.com';
@@ -180,46 +174,8 @@ export default function AyarlarScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        {/* Görünüm */}
-        <Section title={t('settings.appearance')} delay={0}>
-          <Block icon="contrast-outline" title={t('settings.theme')}>
-            <Segmented
-              value={prefs.themeMode}
-              onChange={(v) => setPref('themeMode', v)}
-              options={[
-                { key: 'system' as const, label: t('settings.theme.system') },
-                { key: 'light' as const, label: t('settings.theme.light') },
-                { key: 'dark' as const, label: t('settings.theme.dark') },
-              ]}
-            />
-          </Block>
-
-          <Divider />
-
-          <Block
-            icon="color-palette-outline"
-            title={t('settings.accent')}
-            subtitle={t('settings.accentHint')}
-          >
-            <View style={styles.accentRow}>
-              {ACCENT_ORDER.map((id) => (
-                <AccentDot
-                  key={id}
-                  id={id}
-                  active={prefs.accent === id}
-                  label={t(`accent.${id}` as TranslationKey)}
-                  onPress={() => {
-                    Haptics.selectionAsync();
-                    setPref('accent', id);
-                  }}
-                />
-              ))}
-            </View>
-          </Block>
-        </Section>
-
         {/* Dil */}
-        <Section title={t('settings.language')} delay={40}>
+        <Section title={t('settings.language')} delay={0}>
           <Block
             icon="language-outline"
             title={t('settings.language')}
@@ -586,35 +542,6 @@ function Block({
   );
 }
 
-function AccentDot({
-  id,
-  active,
-  label,
-  onPress,
-}: {
-  id: AccentId;
-  active: boolean;
-  label: string;
-  onPress: () => void;
-}) {
-  const a = ACCENTS[id];
-  return (
-    <Touchable style={styles.dotWrap} onPress={onPress} scaleTo={0.88} haptic={false}>
-      <View style={[styles.dotRing, active && { borderColor: a.mid }]}>
-        <LinearGradient
-          colors={[a.from, a.mid, a.to]}
-          start={gradientStart}
-          end={gradientEnd}
-          style={styles.dot}
-        >
-          {active && <Ionicons name="checkmark" size={16} color="#fff" />}
-        </LinearGradient>
-      </View>
-      <Text style={[styles.dotLabel, active && styles.dotLabelActive]}>{label}</Text>
-    </Touchable>
-  );
-}
-
 function Editor({
   value,
   onChange,
@@ -727,25 +654,6 @@ const styles = makeStyles((colors) => ({
   switchOn: { backgroundColor: colors.accent },
   knob: { width: 22, height: 22, borderRadius: 11, backgroundColor: '#fff' },
   knobOn: { alignSelf: 'flex-end' },
-
-  accentRow: { flexDirection: 'row', justifyContent: 'space-between' },
-  dotWrap: { alignItems: 'center', gap: 5, width: 48 },
-  dotRing: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 2,
-    borderColor: 'transparent',
-    padding: 3,
-  },
-  dot: {
-    flex: 1,
-    borderRadius: 15,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotLabel: { color: colors.textFaint, fontSize: 10 },
-  dotLabelActive: { color: colors.text, fontWeight: '600' },
 
   chips: { flexDirection: 'row', gap: spacing.sm },
   chip: {

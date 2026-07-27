@@ -1,6 +1,6 @@
 // Kök layout — marka fontları, tema, tercihler, güvenli alan, auth, toast ve Stack.
 
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -15,13 +15,12 @@ import { FeedbackProvider } from '@/components/Toast';
 import { AuthProvider } from '@/lib/auth';
 import { fontAssets } from '@/lib/fonts';
 import { loadPrefs } from '@/lib/prefs';
-import { colors, themeInfo, useThemeTick } from '@/theme';
+import { colors } from '@/theme';
 
 // Fontlar yüklenene kadar splash açık kalsın — yazılar bir anda "zıplamasın".
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
-  const tick = useThemeTick();
   const [fontsLoaded, fontError] = useFonts(fontAssets);
   const [prefsReady, setPrefsReady] = useState(false);
   const ready = (fontsLoaded || !!fontError) && prefsReady;
@@ -37,15 +36,14 @@ export default function RootLayout() {
   // Sekmeler arası geçişte kenarlarda görünen kök zemin de temaya uysun.
   useEffect(() => {
     SystemUI.setBackgroundColorAsync(colors.bg).catch(() => {});
-  }, [tick]);
+  }, []);
 
   if (!ready) return <View style={{ flex: 1, backgroundColor: colors.bg }} />;
 
-  const base = themeInfo.isDark ? DarkTheme : DefaultTheme;
   const navTheme = {
-    ...base,
+    ...DarkTheme,
     colors: {
-      ...base.colors,
+      ...DarkTheme.colors,
       background: colors.bg,
       card: colors.bg,
       text: colors.text,
@@ -60,7 +58,7 @@ export default function RootLayout() {
         <ThemeProvider value={navTheme}>
           <AuthProvider>
             <FeedbackProvider>
-              <StatusBar style={themeInfo.statusBar} />
+              <StatusBar style="light" />
               <Stack
                 screenOptions={{
                   headerShown: false,

@@ -17,7 +17,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 
-import { colors, makeStyles, radius, spacing, themeInfo, useThemeTick } from '@/theme';
+import { colors, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 type BoxProps = {
   width?: DimensionValue;
@@ -26,10 +26,10 @@ type BoxProps = {
   style?: StyleProp<ViewStyle>;
 };
 
-// Parıltı — koyu temada beyaz, aydınlıkta siyah tonu.
-const shimmer = (): [string, string, string] => [
+// Parıltı — koyu zeminde hafif beyaz geçiş.
+const shimmer: [string, string, string] = [
   'transparent',
-  themeInfo.isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+  'rgba(255,255,255,0.06)',
   'transparent',
 ];
 
@@ -57,7 +57,7 @@ export function Skeleton({ width = '100%', height = 14, rounded = radius.sm, sty
       {w > 0 && (
         <Animated.View style={[StyleSheet.absoluteFill, anim]}>
           <LinearGradient
-            colors={shimmer()}
+            colors={shimmer}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}

@@ -16,8 +16,9 @@ import {
   type ViewToken,
 } from 'react-native';
 
+import { VideoScrubber } from '@/components/VideoScrubber';
 import { usePref } from '@/lib/prefs';
-import { colors, makeStyles, useThemeTick } from '@/theme';
+import { makeStyles, useThemeTick } from '@/theme';
 
 /** Ekran şu an odakta mı — sekme/sayfa değişince videoları susturmak için. */
 export function useScreenFocused() {
@@ -60,35 +61,42 @@ export function useVisibleVideo() {
 }
 
 /**
- * Oynatıcı + ses durumu. `active` false olduğunda video durur ve sesi kapanır.
- * Ayarlarda "otomatik oynat" kapalıysa video dokunulana kadar beklemede kalır.
+ * Oynatıcı + ses/durdurma durumu.
+ *
+ * - `active` false olduğunda (kart görünürden çıktı, ekran odağını yitirdi)
+ *   video durur, sesi kapanır ve elle verilen kararlar sıfırlanır.
+ * - Videoya dokunmak oynat/durdur yapar; ses ayrı düğmede.
+ * - Ayarlarda "otomatik oynat" kapalıysa video ilk dokunuşa kadar bekler.
  */
 export function useInlineVideo(uri: string | null | undefined, active: boolean) {
   const autoplay = usePref('autoplay');
   const [muted, setMuted] = useState(true);
   const [started, setStarted] = useState(false);
+  const [paused, setPaused] = useState(false);
   const player = useVideoPlayer(uri ?? null, (p) => {
     p.loop = true;
     p.muted = true;
+    // İlerleme çubuğunun akıcı görünmesi için (VideoScrubber bunu dinliyor).
+    p.timeUpdateEventInterval = 0.25;
   });
   const foreground = useAppForeground();
-  const playing = !!uri && active && foreground && (autoplay || started);
-
-  // Kart görünürden çıkınca elle başlatma da sıfırlansın.
-  useEffect(() => {
-    if (!active) setStarted(false);
-  }, [active]);
+  const playing = !!uri && active && foreground && !paused && (autoplay || started);
 
   useEffect(() => {
     if (!uri) return;
-    if (playing) {
-      player.play();
-    } else {
-      player.pause();
-      player.muted = true;
-      setMuted(true);
-    }
+    if (playing) player.play();
+    else player.pause();
   }, [playing, uri, player]);
+
+  // Kart görünürden çıkınca temiz sayfa: ses kapanır, elle durdurma unutulur.
+  // (Elle durdurmada sesi sıfırlamıyoruz — devam ettirince ses geri gelsin.)
+  useEffect(() => {
+    if (active) return;
+    setStarted(false);
+    setPaused(false);
+    setMuted(true);
+    player.muted = true;
+  }, [active, player]);
 
   const toggleMute = useCallback(() => {
     const next = !muted;
@@ -96,16 +104,17 @@ export function useInlineVideo(uri: string | null | undefined, active: boolean) 
     setMuted(next);
   }, [muted, player]);
 
-  /** Dokunuş: beklemedeyse başlatır, oynuyorsa sesi açıp kapatır. */
+  /** Videoya dokunuş: beklemedeyse başlatır, oynuyorsa durdurur, duruyorsa devam eder. */
   const press = useCallback(() => {
     if (!autoplay && !started) {
       setStarted(true);
+      setPaused(false);
       return;
     }
-    toggleMute();
-  }, [autoplay, started, toggleMute]);
+    setPaused((p) => !p);
+  }, [autoplay, started]);
 
-  return { player, muted, toggleMute, playing, press };
+  return { player, muted, toggleMute, playing, paused, press };
 }
 
 export function InlineVideo({
@@ -120,10 +129,10 @@ export function InlineVideo({
   contentFit?: 'cover' | 'contain';
 }) {
   useThemeTick();
-  const { player, muted, playing, press } = useInlineVideo(uri, active);
+  const { player, muted, toggleMute, playing, press } = useInlineVideo(uri, active);
 
   return (
-    <Pressable style={style} onPress={press}>
+    <Pressable style={[style, styles.container]} onPress={press}>
       <VideoView
         player={player}
         style={StyleSheet.absoluteFill}
@@ -131,18 +140,21 @@ export function InlineVideo({
         nativeControls={false}
       />
       {!playing && (
-        <View style={styles.playBadge}>
+        <View style={styles.playBadge} pointerEvents="none">
           <Ionicons name="play" size={22} color="#fff" />
         </View>
       )}
-      <View style={styles.muteBtn}>
+      <Pressable style={styles.muteBtn} onPress={toggleMute} hitSlop={8}>
         <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
-      </View>
+      </Pressable>
+      <VideoScrubber player={player} />
     </Pressable>
   );
 }
 
 const styles = makeStyles((colors) => ({
+  // Sarma çubuğu akış içinde en altta dursun.
+  container: { justifyContent: 'flex-end' },
   playBadge: {
     position: 'absolute',
     alignSelf: 'center',
@@ -155,9 +167,10 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Sarma çubuğu alta geldiği için ses düğmesi üste taşındı.
   muteBtn: {
     position: 'absolute',
-    bottom: 10,
+    top: 10,
     right: 10,
     width: 30,
     height: 30,

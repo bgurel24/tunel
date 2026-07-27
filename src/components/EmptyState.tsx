@@ -15,7 +15,6 @@ import {
   gradientStart,
   makeStyles,
   radius,
-  shadow,
   spacing,
   useThemeTick,
 } from '@/theme';
@@ -32,17 +31,8 @@ export function EmptyState({ icon, title, body, actionLabel, onAction }: Props) 
   useThemeTick();
   return (
     <Animated.View entering={FadeInDown.duration(400)} style={styles.wrap}>
-      <View style={styles.ringOuter}>
-        <LinearGradient
-          colors={gradientColors}
-          start={gradientStart}
-          end={gradientEnd}
-          style={[styles.ring, shadow.glowSoft]}
-        >
-          <View style={styles.ringInner}>
-            <Ionicons name={icon} size={30} color={colors.accent} />
-          </View>
-        </LinearGradient>
+      <View style={styles.ring}>
+        <Ionicons name={icon} size={30} color={colors.accent} />
       </View>
 
       <Text style={styles.title}>{title}</Text>
@@ -71,21 +61,16 @@ const styles = makeStyles((colors) => ({
     paddingTop: spacing.xxl * 1.6,
     paddingHorizontal: spacing.xl,
   },
-  ringOuter: { marginBottom: spacing.sm },
   ring: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: colors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: colors.line,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  ringInner: {
-    width: 68,
-    height: 68,
-    borderRadius: 34,
-    backgroundColor: colors.bg,
-    alignItems: 'center',
-    justifyContent: 'center',
+    marginBottom: spacing.sm,
   },
   title: { color: colors.text, fontSize: fontSize.lg, fontFamily: font.display },
   body: {

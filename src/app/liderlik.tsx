@@ -26,10 +26,8 @@ import {
   gradientStart,
   makeStyles,
   radius,
-  shadow,
   spacing,
   tabularNums,
-  themeInfo,
   useThemeTick,
 } from '@/theme';
 
@@ -173,7 +171,7 @@ export default function LiderlikScreen() {
                       colors={avatarGradient(row.name)}
                       start={gradientStart}
                       end={gradientEnd}
-                      style={[styles.podiumAvatar, first && shadow.glowSoft]}
+                      style={styles.podiumAvatar}
                     >
                       <Text style={styles.podiumInitials}>{initialsOf(row.name)}</Text>
                     </LinearGradient>
@@ -239,7 +237,7 @@ export default function LiderlikScreen() {
       {/* Kendi sıran — ilk üçte değilsen altta sabit durur */}
       {me && !meInTop && (
         <View style={styles.sticky}>
-          <BlurView intensity={40} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
+          <BlurView intensity={40} tint="dark" style={StyleSheet.absoluteFill} />
           <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.glass }]} />
           <View style={styles.stickyInner}>
             <Text style={styles.rankNum}>{me.rank}</Text>

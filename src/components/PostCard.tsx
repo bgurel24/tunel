@@ -6,7 +6,7 @@ import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { VideoView } from 'expo-video';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, {
   useAnimatedStyle,
@@ -20,6 +20,7 @@ import Animated, {
 import { Avatar } from '@/components/Avatar';
 import { useInlineVideo } from '@/components/InlineVideo';
 import { Text } from '@/components/Text';
+import { VideoScrubber } from '@/components/VideoScrubber';
 import { useModeration } from '@/components/useModeration';
 import { useT } from '@/lib/i18n';
 import { tagKeyOf } from '@/lib/workout-tags';
@@ -32,13 +33,9 @@ import type { Post } from '@/lib/types';
 import {
   colors,
   fontSize,
-  gradientColors,
-  gradientEnd,
-  gradientStart,
   makeStyles,
   radius,
   scrimGradient,
-  shadow,
   spacing,
   tabularNums,
   useThemeTick,
@@ -67,7 +64,7 @@ export function PostCard({
   const [clapped, setClapped] = useState(post.myClapped);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [clapCount, setClapCount] = useState(post.clapCount);
-  const { player, muted, playing, press } = useInlineVideo(post.videoUrl, active);
+  const { player, muted, toggleMute, playing, press } = useInlineVideo(post.videoUrl, active);
 
   const isMine = !!post.authorId && post.authorId === session?.user?.id;
   const mediaAspect = post.videoUrl ? 0.8 : aspect;
@@ -76,6 +73,14 @@ export function PostCard({
   const heartPop = useSharedValue(1);
   const lastTap = useRef(0);
   const tapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Kart sökülürken bekleyen tek-dokunuş zamanlayıcısı boşa tetiklenmesin.
+  useEffect(
+    () => () => {
+      if (tapTimeout.current) clearTimeout(tapTimeout.current);
+    },
+    []
+  );
 
   const burstStyle = useAnimatedStyle(() => ({
     opacity: burst.value,
@@ -203,15 +208,10 @@ export function PostCard({
           <Text style={styles.sub}>{[post.gym, post.timeLabel].filter(Boolean).join(' · ')}</Text>
         </Pressable>
         {!isMine && post.streakWeeks ? (
-          <LinearGradient
-            colors={gradientColors}
-            start={gradientStart}
-            end={gradientEnd}
-            style={[styles.streak, shadow.glowSoft]}
-          >
-            <Ionicons name="flame" size={12} color="#fff" />
+          <View style={styles.streak}>
+            <Ionicons name="flame" size={12} color={colors.accent} />
             <Text style={styles.streakText}>{t('post.weeks', { n: post.streakWeeks })}</Text>
-          </LinearGradient>
+          </View>
         ) : null}
 
         {post.authorId ? (
@@ -234,13 +234,13 @@ export function PostCard({
               nativeControls={false}
             />
             {!playing && (
-              <View style={styles.playBadge}>
+              <View style={styles.playBadge} pointerEvents="none">
                 <Ionicons name="play" size={24} color="#fff" />
               </View>
             )}
-            <View style={styles.muteBtn}>
+            <Pressable style={styles.muteBtn} onPress={toggleMute} hitSlop={8}>
               <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
-            </View>
+            </Pressable>
           </>
         ) : post.imageUrl ? (
           <Image
@@ -278,20 +278,15 @@ export function PostCard({
 
         {post.music && (
           <View style={styles.musicBar}>
-            <LinearGradient
-              colors={gradientColors}
-              start={gradientStart}
-              end={gradientEnd}
-              style={styles.musicIcon}
-            >
-              <Ionicons name="musical-notes" size={15} color="#fff" />
-            </LinearGradient>
+            <Ionicons name="musical-notes" size={14} color="rgba(255,255,255,0.9)" />
             <Text style={styles.musicText} numberOfLines={1}>
               {post.music.title} · {post.music.artist}
             </Text>
-            <Ionicons name="play" size={18} color={colors.text} />
+            <Ionicons name="play" size={16} color="rgba(255,255,255,0.9)" />
           </View>
         )}
+
+        {post.videoUrl && <VideoScrubber player={player} />}
       </Pressable>
 
       <View style={styles.actions}>
@@ -312,12 +307,13 @@ export function PostCard({
         </Pressable>
 
         <Pressable style={styles.action} onPress={toggleClap} hitSlop={8}>
-          <Ionicons name="flame" size={22} color={clapped ? colors.accent : colors.textDim} />
+          <Ionicons
+            name={clapped ? 'flame' : 'flame-outline'}
+            size={22}
+            color={clapped ? colors.accent : colors.text}
+          />
           <Text style={[styles.actionCount, clapped && { color: colors.accent }]}>{clapCount}</Text>
         </Pressable>
-
-        <View style={{ flex: 1 }} />
-        <Ionicons name="paper-plane-outline" size={21} color={colors.textDim} />
       </View>
 
       {post.caption ? (
@@ -365,8 +361,9 @@ const styles = makeStyles((colors) => ({
     paddingHorizontal: 9,
     paddingVertical: 4,
     borderRadius: radius.pill,
+    backgroundColor: colors.accentBg,
   },
-  streakText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '600' },
+  streakText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '600' },
   media: {
     width: '100%',
     borderRadius: radius.lg,
@@ -422,9 +419,10 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     justifyContent: 'center',
   },
+  // Sarma çubuğu alta geldiği için ses düğmesi üste taşındı.
   muteBtn: {
     position: 'absolute',
-    bottom: 10,
+    top: 10,
     right: 10,
     width: 30,
     height: 30,
@@ -438,13 +436,12 @@ const styles = makeStyles((colors) => ({
     alignItems: 'center',
     gap: spacing.sm,
     margin: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: radius.md,
-    backgroundColor: colors.scrim,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(0,0,0,0.45)',
   },
-  musicIcon: { width: 30, height: 30, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
-  musicText: { flex: 1, color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
+  musicText: { flex: 1, color: '#fff', fontSize: fontSize.xs, fontWeight: '500' },
   actions: {
     flexDirection: 'row',
     alignItems: 'center',

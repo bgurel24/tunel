@@ -4,7 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { SafeAreaView, type Edge } from 'react-native-safe-area-context';
 
-import { colors, makeStyles, spacing, themeInfo, useThemeTick } from '@/theme';
+import { makeStyles, spacing, useThemeTick } from '@/theme';
 
 type Props = {
   children: React.ReactNode;
@@ -17,7 +17,7 @@ export function Screen({ children, style, edges = ['top', 'bottom'], padded = tr
   useThemeTick();
   return (
     <View style={styles.root}>
-      <StatusBar style={themeInfo.statusBar} />
+      <StatusBar style="light" />
       <SafeAreaView style={styles.safe} edges={edges}>
         <View style={[styles.fill, padded && styles.padded, style]}>{children}</View>
       </SafeAreaView>

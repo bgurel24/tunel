@@ -10,13 +10,9 @@ import { useRouter } from 'expo-router';
 import { useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import Animated, {
-  Easing,
   useAnimatedStyle,
   useSharedValue,
-  withRepeat,
-  withSequence,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
@@ -31,7 +27,6 @@ import {
   makeStyles,
   shadow,
   spacing,
-  themeInfo,
   useThemeTick,
 } from '@/theme';
 
@@ -70,9 +65,8 @@ function TabItem({
   }, [focused, lift]);
 
   const iconStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: press.value * (1 + lift.value * 0.12) }, { translateY: -lift.value * 2 }],
+    transform: [{ scale: press.value * (1 + lift.value * 0.08) }],
   }));
-  const glowStyle = useAnimatedStyle(() => ({ opacity: lift.value }));
 
   const meta = META[name as TabName];
   if (!meta) return null;
@@ -91,7 +85,6 @@ function TabItem({
         onPress();
       }}
     >
-      <Animated.View pointerEvents="none" style={[styles.glow, glowStyle]} />
       <Animated.View style={iconStyle}>
         <Ionicons
           name={focused ? meta.icon : (`${meta.icon}-outline` as keyof typeof Ionicons.glyphMap)}
@@ -109,20 +102,8 @@ function TabItem({
 function CameraButton() {
   const router = useRouter();
   const press = useSharedValue(1);
-  const breath = useSharedValue(1);
 
-  useEffect(() => {
-    breath.value = withRepeat(
-      withSequence(
-        withTiming(1.05, { duration: 1600, easing: Easing.inOut(Easing.quad) }),
-        withTiming(1, { duration: 1600, easing: Easing.inOut(Easing.quad) })
-      ),
-      -1,
-      false
-    );
-  }, [breath]);
-
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: press.value * breath.value }] }));
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: press.value }] }));
 
   return (
     <Pressable
@@ -138,7 +119,7 @@ function CameraButton() {
         router.push('/paylas');
       }}
     >
-      <Animated.View style={[shadow.glow, style]}>
+      <Animated.View style={[shadow.raised, style]}>
         <LinearGradient
           colors={gradientColors}
           start={gradientStart}
@@ -173,7 +154,7 @@ export function TabBar({ state, navigation }: BottomTabBarProps) {
 
   return (
     <View style={[styles.bar, { paddingBottom: Math.max(insets.bottom, 8) }]}>
-      <BlurView intensity={38} tint={themeInfo.blurTint} style={StyleSheet.absoluteFill} />
+      <BlurView intensity={38} tint="dark" style={StyleSheet.absoluteFill} />
       <View style={[StyleSheet.absoluteFill, styles.tintOverlay]} />
       <View style={styles.hairline} />
 
@@ -208,14 +189,6 @@ const styles = makeStyles((colors) => ({
   },
   row: { flexDirection: 'row', alignItems: 'center' },
   tab: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 3, height: 44 },
-  glow: {
-    position: 'absolute',
-    top: -2,
-    width: 46,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: colors.accentBg,
-  },
   label: { fontSize: fontSize.xs, fontWeight: '500' },
   center: { width: 66, alignItems: 'center', justifyContent: 'center' },
   centerCircle: {
