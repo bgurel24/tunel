@@ -16,6 +16,7 @@ import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
 import { getTeamTasks, type SubmissionStatus, type TeamTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
+import { dueLabel } from '@/lib/time';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const STATUS: Record<
@@ -193,19 +194,39 @@ export default function GorevlerScreen() {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskSub}>{t('tasks.points', { n: task.points })}</Text>
+                <Text style={styles.taskSub}>
+                  {t('tasks.points', { n: task.points })}
+                  {task.dueAt ? ' · ' : ''}
+                  {task.dueAt ? (
+                    <Text style={task.overdue ? styles.dueLate : styles.dueSoon}>
+                      {dueLabel(task.dueAt)}
+                    </Text>
+                  ) : null}
+                  {task.submittedLate ? ` · ${t('tasks.lateUpload')}` : ''}
+                </Text>
+                {task.rejectNote ? (
+                  <Text style={styles.rejectNote}>
+                    {t('tasks.rejectReason')}: {task.rejectNote}
+                  </Text>
+                ) : null}
               </View>
 
               {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
                 <Pressable
-                  style={styles.uploadBtn}
+                  style={[styles.uploadBtn, task.overdue && styles.uploadBtnLate]}
                   onPress={() =>
                     router.push({ pathname: '/gorev-yukle', params: { taskId: task.id, task: task.title, teamId: selectedTeam?.id ?? '' } })
                   }
                 >
                   <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
                   <Text style={styles.uploadText}>
-                    {t(task.myStatus === 'rejected' ? 'tasks.retry' : 'tasks.upload')}
+                    {t(
+                      task.overdue
+                        ? 'tasks.uploadLate'
+                        : task.myStatus === 'rejected'
+                          ? 'tasks.retry'
+                          : 'tasks.upload'
+                    )}
                   </Text>
                 </Pressable>
               ) : (
@@ -230,6 +251,11 @@ export default function GorevlerScreen() {
         <View style={styles.info}>
           <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
           <Text style={styles.infoText}>{t('tasks.info')}</Text>
+        </View>
+
+        <View style={styles.info}>
+          <Ionicons name="time-outline" size={16} color={colors.accent} />
+          <Text style={styles.infoText}>{t('tasks.weekInfo')}</Text>
         </View>
       </ScrollView>
     </Screen>
@@ -292,6 +318,9 @@ const styles = makeStyles((colors) => ({
   taskOrder: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
   taskTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
   taskSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
+  dueSoon: { color: colors.textDim },
+  dueLate: { color: colors.danger },
+  rejectNote: { color: colors.danger, fontSize: fontSize.xs, marginTop: 4, lineHeight: 16 },
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -301,6 +330,7 @@ const styles = makeStyles((colors) => ({
     paddingVertical: 7,
     borderRadius: radius.pill,
   },
+  uploadBtnLate: { backgroundColor: colors.warning },
   uploadText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '500' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   statusText: { fontSize: fontSize.xs, fontWeight: '500' },
