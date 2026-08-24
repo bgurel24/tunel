@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="theme-color" content="#08080B" />
+<title>Tünel — Ana ekrana ekle</title>
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png" />
+<link rel="manifest" href="/manifest.json" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="Tünel" />
+<style>
+  :root { color-scheme: dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: #08080B; color: #F5F5F8;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    line-height: 1.55; -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 460px; margin: 0 auto; padding: 32px 20px 56px; }
+  .top { text-align: center; margin-bottom: 28px; }
+  .icon { width: 76px; height: 76px; border-radius: 18px; }
+  h1 { font-size: 22px; font-weight: 600; margin: 14px 0 6px; }
+  .lead { color: #9C9CA8; font-size: 15px; margin: 0; }
+  .card { background: #131319; border: 1px solid rgba(255,255,255,0.08); border-radius: 14px; padding: 18px; margin-bottom: 16px; }
+  .card h2 { font-size: 16px; font-weight: 600; margin: 0 0 14px; }
+  ol { margin: 0; padding-left: 0; list-style: none; counter-reset: adim; }
+  li { counter-increment: adim; position: relative; padding: 0 0 16px 40px; font-size: 15px; }
+  li:last-child { padding-bottom: 0; }
+  li::before {
+    content: counter(adim); position: absolute; left: 0; top: -1px;
+    width: 26px; height: 26px; border-radius: 13px; background: #1C1C24;
+    color: #FF6B4A; font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .glyph { display: inline-flex; vertical-align: -5px; margin: 0 2px; }
+  .uyari { background: rgba(255,176,32,0.12); border: 1px solid rgba(255,176,32,0.25); color: #FFB020; border-radius: 12px; padding: 14px 16px; font-size: 14px; margin-bottom: 16px; }
+  .uyari button { margin-top: 12px; background: rgba(255,176,32,0.18); color: #FFB020; border: 0; border-radius: 999px; padding: 9px 18px; font-size: 14px; font-weight: 600; }
+  .ok { background: rgba(61,220,151,0.12); border: 1px solid rgba(61,220,151,0.25); color: #3DDC97; border-radius: 12px; padding: 14px 16px; font-size: 14px; margin-bottom: 16px; }
+  .btn {
+    display: block; text-align: center; text-decoration: none; color: #fff; font-weight: 600; font-size: 16px;
+    background: linear-gradient(100deg, #FF3D71, #FF8A3D); border-radius: 999px; padding: 15px; margin-top: 8px;
+  }
+  .alt { display: block; text-align: center; color: #9C9CA8; font-size: 14px; margin-top: 18px; text-decoration: none; }
+  .url { background: #1C1C24; border-radius: 10px; padding: 12px 14px; font-size: 14px; color: #F5F5F8; word-break: break-all; text-align: center; margin-top: 12px; }
+  .not { color: #64646E; font-size: 13px; margin-top: 22px; text-align: center; }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="top">
+    <img class="icon" src="/icons/icon-192.png" alt="" />
+    <h1>Tünel'i telefonuna kur</h1>
+    <p class="lead">Uygulama mağazasına gerek yok. Bir dakika sürer.</p>
+  </div>
+
+  <div id="safari-uyari" class="uyari" hidden>
+    <div id="uyari-metin"></div>
+    <button type="button" id="kopyala">Bağlantıyı kopyala</button>
+  </div>
+
+  <div id="ios" class="card" hidden>
+    <h2>iPhone / iPad</h2>
+    <ol>
+      <li>Bu sayfa <strong>Safari'de</strong> açık olsun.</li>
+      <li>
+        Alttaki
+        <span class="glyph"><svg width="17" height="19" viewBox="0 0 17 19" fill="none" aria-hidden="true"><path d="M8.5 1v11M8.5 1L5 4.5M8.5 1L12 4.5" stroke="#FF6B4A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/><path d="M3.5 8H2v9h13V8h-1.5" stroke="#FF6B4A" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+        <strong>Paylaş</strong> düğmesine bas.
+      </li>
+      <li>Listeyi aşağı kaydır, <strong>Ana Ekrana Ekle</strong>'ye bas.</li>
+      <li>Sağ üstten <strong>Ekle</strong>'ye bas. Tünel simgesi ana ekranına düşer.</li>
+    </ol>
+  </div>
+
+  <div id="android" class="card" hidden>
+    <h2>Android</h2>
+    <ol>
+      <li>Bu sayfa <strong>Chrome'da</strong> açık olsun.</li>
+      <li>Sağ üstteki <strong>⋮</strong> menüsüne bas.</li>
+      <li><strong>Uygulamayı yükle</strong> ya da <strong>Ana ekrana ekle</strong>'ye bas.</li>
+      <li>Onayla. Tünel simgesi ana ekranına düşer.</li>
+    </ol>
+  </div>
+
+  <div id="masaustu" class="card" hidden>
+    <h2>Bilgisayardan bakıyorsun</h2>
+    <p style="margin:0;color:#9C9CA8;font-size:15px">
+      Tünel telefon için yapıldı. Bu adresi telefonunda aç:
+    </p>
+    <div class="url" id="adres"></div>
+  </div>
+
+  <a class="btn" href="/">Uygulamayı aç</a>
+  <a class="alt" id="digeri" href="#">Diğer telefon için adımları göster</a>
+
+  <p class="not">Kurduktan sonra normal uygulama gibi açılır — güncellemeleri kendi alır.</p>
+
+</div>
+
+<script>
+(function () {
+  var ua = navigator.userAgent;
+  var ios = /iPad|iPhone|iPod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  var android = /Android/.test(ua);
+  var kurulu = window.navigator.standalone === true ||
+               (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+
+  document.getElementById('adres').textContent = location.host;
+
+  function goster(id) {
+    ['ios', 'android', 'masaustu'].forEach(function (k) {
+      document.getElementById(k).hidden = (k !== id);
+    });
+  }
+
+  // iOS'ta "Ana Ekrana Ekle" o an açık olan sayfayı kaydediyor; manifest'teki
+  // start_url'i dikkate almıyor (Android alıyor). Yani takımdakiler bu sayfadan
+  // kurunca ana ekran simgesi buraya bakar. Ana ekrandan açıldığımızı
+  // anladığımız anda uygulamaya geçiyoruz ki kimse talimat sayfasında kalmasın.
+  if (kurulu) {
+    location.replace('/');
+    return;
+  }
+
+  goster(ios ? 'ios' : android ? 'android' : 'masaustu');
+
+  // iPhone'da tam ekran uygulama kurulumunu yalnızca Safari yapabiliyor.
+  // Chrome/Firefox kısayol oluşturur ama adres çubuklu açılır; WhatsApp ve
+  // Instagram'ın kendi tarayıcısında ise seçenek hiç çıkmaz. İkisinin çıkış
+  // yolu farklı, o yüzden mesaj da farklı.
+  if (ios) {
+    var baskaTarayici = /CriOS|FxiOS|EdgiOS|OPiOS/.test(ua);
+    var gomulu = /FBAN|FBAV|Instagram|Line|Twitter|MicroMessenger|WhatsApp/.test(ua);
+
+    if (baskaTarayici || gomulu) {
+      document.getElementById('uyari-metin').innerHTML = baskaTarayici
+        ? 'iPhone\'da uygulama kurulumunu yalnızca <strong>Safari</strong> yapabiliyor. ' +
+          'Menüyü aç (⋯ ya da ⋮), <strong>Safari\'de aç</strong>\'a bas — sonra buraya dön.'
+        : 'Bu sayfa uygulamanın kendi tarayıcısında açık, burada kurulum çıkmaz. ' +
+          'Sağ alttaki <strong>Safari\'de aç</strong> seçeneğine bas.';
+      document.getElementById('safari-uyari').hidden = false;
+    }
+  }
+
+  // Menüyü bulamayana çıkış yolu: linki kopyalayıp Safari'ye yapıştırsın.
+  var kopyalaBtn = document.getElementById('kopyala');
+  if (kopyalaBtn) {
+    kopyalaBtn.addEventListener('click', function () {
+      var link = location.origin + '/kurulum';
+      var bitti = function () {
+        kopyalaBtn.textContent = 'Kopyalandı — Safari\'ye yapıştır';
+      };
+      if (navigator.clipboard) navigator.clipboard.writeText(link).then(bitti, bitti);
+      else bitti();
+    });
+  }
+
+  document.getElementById('digeri').addEventListener('click', function (e) {
+    e.preventDefault();
+    var acik = document.getElementById('ios').hidden ? 'android' : 'ios';
+    goster(acik === 'ios' ? 'android' : 'ios');
+  });
+})();
+</script>
+</body>
+</html>
