@@ -8,6 +8,8 @@ import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
 import type { FeedKind, Post, PostMusic } from '@/lib/types';
 import { t } from '@/lib/i18n';
+import { removeOrphanFiles } from '@/lib/storage';
+import { uploadToStorage } from '@/lib/upload';
 
 const DEMO_TEAM: Post[] = [
   {
@@ -61,6 +63,7 @@ function mapRow(row: any): Post {
     avatarUrl: avatarUrlFrom(row.profiles?.avatar_path),
     gym: row.gym ?? null,
     workoutTag: row.workout_tag ?? null,
+    taskTitle: row.task?.title ?? null,
     isLive: !!row.is_live,
     imageUrl,
     videoUrl,
@@ -77,7 +80,7 @@ function mapRow(row: any): Post {
 }
 
 const SELECT =
-  'id, user_id, caption, image_path, video_path, is_live, gym, workout_tag, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username, avatar_path)';
+  'id, user_id, caption, image_path, video_path, is_live, gym, workout_tag, like_count, comment_count, clap_count, music_title, music_artist, created_at, profiles!posts_user_id_fkey(username, avatar_path), task:tasks!posts_task_id_fkey(title)';
 
 async function markReactions(posts: Post[]): Promise<Post[]> {
   const reactions = await getMyReactions(posts.map((p) => p.id));
@@ -132,8 +135,20 @@ export async function getUserPosts(userId: string): Promise<Post[]> {
 }
 
 export async function deletePost(postId: string): Promise<{ error: string | null }> {
+  // Yolları satır silinmeden önce al; sonra depolamayı temizle. Sıra önemli:
+  // satır gittikten sonra bakıyoruz ki "hâlâ kullanılıyor mu" kontrolü silinen
+  // postu saymasın. Kanıt videosu feed'e de paylaşılmışsa dosya kalır.
+  const { data: row } = await supabase
+    .from('posts')
+    .select('image_path, video_path')
+    .eq('id', postId)
+    .maybeSingle();
+
   const { error } = await supabase.from('posts').delete().eq('id', postId);
-  return { error: error?.message ?? null };
+  if (error) return { error: error.message };
+
+  await removeOrphanFiles([(row as any)?.image_path, (row as any)?.video_path]);
+  return { error: null };
 }
 
 export type NewPost = {
@@ -153,14 +168,9 @@ export async function createPost(input: NewPost): Promise<{ error: string | null
   const teamId = (await myTeamIds())[0] ?? null;
 
   try {
-    const res = await fetch(input.imageUri);
-    const arrayBuffer = await res.arrayBuffer();
     const path = `${userId}/${Date.now()}.jpg`;
-
-    const { error: upErr } = await supabase.storage
-      .from('posts')
-      .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: false });
-    if (upErr) return { error: upErr.message };
+    const { error: upErr } = await uploadToStorage(input.imageUri, path, 'image/jpeg');
+    if (upErr) return { error: upErr };
 
     const { error: insErr } = await supabase.from('posts').insert({
       user_id: userId,
@@ -182,11 +192,13 @@ export async function createPost(input: NewPost): Promise<{ error: string | null
 }
 
 // Zaten yüklenmiş bir video yolundan feed paylaşımı oluşturur (görev kanıtını feed'e taşımak için).
+// taskId doluysa post göreve bağlanır — feed kartında görev rozeti çıkar.
 export async function createVideoPost(
   videoPath: string,
   caption: string,
   teamId: string | null,
-  addToSocial: boolean
+  addToSocial: boolean,
+  taskId: string | null = null
 ): Promise<{ error: string | null }> {
   if (!isSupabaseConfigured) return { error: null };
   const { data: userData } = await supabase.auth.getUser();
@@ -195,6 +207,7 @@ export async function createVideoPost(
   const { error } = await supabase.from('posts').insert({
     user_id: userId,
     team_id: teamId,
+    task_id: taskId,
     video_path: videoPath,
     caption: caption || null,
     is_live: true,

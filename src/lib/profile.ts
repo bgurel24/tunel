@@ -5,6 +5,8 @@ import * as ImagePicker from 'expo-image-picker';
 
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { t } from '@/lib/i18n';
+import { removeOwnFile } from '@/lib/storage';
+import { uploadToStorage } from '@/lib/upload';
 
 export type MyProfile = {
   id: string;
@@ -102,21 +104,27 @@ export async function uploadAvatar(
   const uid = userData.user?.id;
   if (!uid) return { error: t('err.noSession') };
 
-  try {
-    const res = await fetch(uri);
-    const arrayBuffer = await res.arrayBuffer();
-    const path = `${uid}/avatar-${Date.now()}.jpg`;
+  // Her yükleme yeni bir dosya adı üretiyor; eskisini silmezsek kullanıcı
+  // fotoğrafını her değiştirdiğinde depolamada bir dosya daha birikirdi.
+  const { data: onceki } = await supabase
+    .from('profiles')
+    .select('avatar_path')
+    .eq('id', uid)
+    .maybeSingle();
 
-    const { error: upErr } = await supabase.storage
-      .from('posts')
-      .upload(path, arrayBuffer, { contentType: 'image/jpeg', upsert: true });
-    if (upErr) return { error: upErr.message };
+  try {
+    const path = `${uid}/avatar-${Date.now()}.jpg`;
+    const { error: upErr } = await uploadToStorage(uri, path, 'image/jpeg');
+    if (upErr) return { error: upErr };
 
     const { error: updErr } = await supabase
       .from('profiles')
       .update({ avatar_path: path })
       .eq('id', uid);
     if (updErr) return { error: updErr.message };
+
+    const eski = (onceki as any)?.avatar_path as string | undefined;
+    if (eski && eski !== path) await removeOwnFile(eski);
 
     return { error: null, avatarUrl: avatarUrlFrom(path) ?? undefined };
   } catch (e) {
