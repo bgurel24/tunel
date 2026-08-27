@@ -7,6 +7,7 @@ import { ActivityIndicator, Pressable, ScrollView, StyleSheet, TextInput, View }
 
 import { useT } from '@/lib/i18n';
 import { GradientButton } from '@/components/GradientButton';
+import { ProgressChart } from '@/components/ProgressChart';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
@@ -144,6 +145,14 @@ export default function PRScreen() {
                   {g.gain > 0 && <Text style={styles.gain}>{t('pr.gain', { value: fmtWeight(g.gain, units) })}</Text>}
                 </View>
               </View>
+
+              {g.entries.length >= 2 && (
+                <ProgressChart
+                  values={[...g.entries].reverse().map((e) => e.weight)}
+                  startLabel={fmtDate(g.entries[g.entries.length - 1].achievedAt)}
+                  endLabel={fmtDate(g.entries[0].achievedAt)}
+                />
+              )}
 
               <View style={styles.entries}>
                 {g.entries.map((e) => (
