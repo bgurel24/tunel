@@ -7,7 +7,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   TextInput,
@@ -36,10 +35,15 @@ export default function SohbetScreen() {
   const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const [kbOpen, setKbOpen] = useState(false);
+  // Klavye yuksekligini kendimiz olcuyoruz: KeyboardAvoidingView bu ekranda
+  // (SafeAreaView + ters FlatList) alt boslugu hesaplayamiyor, cubuk klavyenin
+  // altinda kaliyordu. iOS 'will*' animasyonla, Android 'did*' verir.
+  const [kbHeight, setKbHeight] = useState(0);
   useEffect(() => {
-    const s = Keyboard.addListener('keyboardWillShow', () => setKbOpen(true));
-    const h = Keyboard.addListener('keyboardWillHide', () => setKbOpen(false));
+    const showEv = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEv = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const s = Keyboard.addListener(showEv, (e) => setKbHeight(e.endCoordinates?.height ?? 0));
+    const h = Keyboard.addListener(hideEv, () => setKbHeight(0));
     return () => { s.remove(); h.remove(); };
   }, []);
   const { toast } = useToast();
@@ -120,11 +124,7 @@ export default function SohbetScreen() {
           onAction={() => router.push('/join-team')}
         />
       ) : (
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
-        >
+        <View style={{ flex: 1, paddingBottom: kbHeight }}>
           <FlatList
             data={messages}
             inverted
@@ -152,7 +152,7 @@ export default function SohbetScreen() {
             }
           />
 
-          <View style={[styles.inputRow, { paddingBottom: kbOpen ? spacing.sm : Math.max(insets.bottom, spacing.md) }]}>
+          <View style={[styles.inputRow, { paddingBottom: kbHeight > 0 ? spacing.sm : Math.max(insets.bottom, spacing.md) }]}>
             <TextInput
               value={draft}
               onChangeText={setDraft}
@@ -171,7 +171,7 @@ export default function SohbetScreen() {
               <Ionicons name="arrow-up" size={20} color="#fff" />
             </Pressable>
           </View>
-        </KeyboardAvoidingView>
+        </View>
       )}
     </Screen>
   );

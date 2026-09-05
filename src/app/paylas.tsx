@@ -200,8 +200,8 @@ export default function PaylasScreen() {
       <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
       {/* Cift dokunma: on/arka kamera. Tek dokunma bir sey yapmaz, deklansor asagida. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={onCameraTap} />
-      <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
-        <View style={styles.cameraTop}>
+      <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']} pointerEvents="box-none">
+        <View style={styles.cameraTop} pointerEvents="box-none">
           <Pressable onPress={() => router.back()} hitSlop={12} style={styles.roundBtn}>
             <Ionicons name="close" size={24} color="#fff" />
           </Pressable>
@@ -212,7 +212,7 @@ export default function PaylasScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <View style={styles.cameraBottom}>
+        <View style={styles.cameraBottom} pointerEvents="box-none">
           <View style={{ width: 48 }} />
           <Pressable onPress={capture} style={styles.shutterOuter}>
             <View style={styles.shutterInner} />
