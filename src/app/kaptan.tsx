@@ -33,7 +33,7 @@ import {
   type GridStatus,
   type MemberActivity,
 } from '@/lib/captain';
-import { createTask, deleteTask } from '@/lib/tasks';
+import { createTask, defaultDueAt, deleteTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
 import {
   colors,
@@ -145,11 +145,12 @@ export default function KaptanScreen() {
   const addTask = async () => {
     if (!selectedId || !newTitle.trim() || adding) return;
     setAdding(true);
-    const due = /^\d{4}-\d{2}-\d{2}$/.test(dueDate.trim()) ? dueDate.trim() : null;
-    const { error } = await createTask(selectedId, newTitle, 10, {
-      assignedTo: assignees,
-      dueDate: due,
-    });
+    // Kutuya GG yazilmazsa varsayilan bir hafta (Burak'in haftalik gorev kurali).
+    const typed = dueDate.trim();
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(typed)
+      ? new Date(`${typed}T23:59:59`).toISOString()
+      : defaultDueAt();
+    const { error } = await createTask(selectedId, newTitle, 10, due, assignees);
     setAdding(false);
     if (error) return toast(error, 'error');
     setNewTitle('');
@@ -374,7 +375,7 @@ export default function KaptanScreen() {
                               ? t('captain.assignedTo', { names: task.assignedTo.map(nameOf).join(', ') })
                               : t('captain.wholeTeam')}{' '}
                             · {task.rows.filter((r) => r.status === 'approved').length}/{task.rows.length}
-                            {task.dueDate ? ` · ${t('tasks.due', { date: task.dueDate.slice(5) })}` : ''}
+                            {task.dueAt ? ` · ${t('tasks.due', { date: task.dueAt.slice(5, 10) })}` : ''}
                           </Text>
                         </View>
                         <Pressable onPress={() => removeTask(task)} hitSlop={10}>

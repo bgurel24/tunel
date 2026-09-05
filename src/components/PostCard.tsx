@@ -63,7 +63,7 @@ export function PostCard({
   const [clapped, setClapped] = useState(post.myClapped);
   const [likeCount, setLikeCount] = useState(post.likeCount);
   const [clapCount, setClapCount] = useState(post.clapCount);
-  const { player, muted, toggleMute, playing, press } = useInlineVideo(post.videoUrl, active);
+  const { player, muted, toggleMute, playing, loaded, press } = useInlineVideo(post.videoUrl, active);
 
   const isMine = !!post.authorId && post.authorId === session?.user?.id;
   const mediaAspect = post.videoUrl ? 0.8 : aspect;
@@ -205,6 +205,14 @@ export function PostCard({
           </View>
           <Text style={styles.sub}>{[post.gym, post.timeLabel].filter(Boolean).join(' · ')}</Text>
         </Pressable>
+        {post.taskTitle ? (
+          <View style={styles.taskBadge}>
+            <Ionicons name="checkmark-done" size={11} color={colors.accent} />
+            <Text style={styles.taskBadgeText} numberOfLines={1}>
+              {post.taskTitle}
+            </Text>
+          </View>
+        ) : null}
         {!isMine && post.streakWeeks ? (
           <View style={styles.streak}>
             <Ionicons name="flame" size={12} color={colors.accent} />
@@ -231,14 +239,22 @@ export function PostCard({
               contentFit="cover"
               nativeControls={false}
             />
+            {/* Video indirilmeden önce sade kapak — dokununca yüklenir. */}
+            {!loaded && (
+              <View style={styles.mediaPlaceholder} pointerEvents="none">
+                <Ionicons name="videocam-outline" size={44} color={colors.surface3} />
+              </View>
+            )}
             {!playing && (
               <View style={styles.playBadge} pointerEvents="none">
                 <Ionicons name="play" size={24} color="#fff" />
               </View>
             )}
-            <Pressable style={styles.muteBtn} onPress={toggleMute} hitSlop={8}>
-              <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
-            </Pressable>
+            {loaded && (
+              <Pressable style={styles.muteBtn} onPress={toggleMute} hitSlop={8}>
+                <Ionicons name={muted ? 'volume-mute' : 'volume-high'} size={15} color="#fff" />
+              </Pressable>
+            )}
           </>
         ) : post.imageUrl ? (
           <Image
@@ -350,6 +366,18 @@ const styles = makeStyles((colors) => ({
   },
   tagText: { color: colors.accent, fontSize: 10, fontWeight: '700' },
   sub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 1 },
+  // Görev kanıtı olarak paylaşılan postlarda hangi görev olduğu görünsün.
+  taskBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    maxWidth: 130,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.accentBg,
+  },
+  taskBadgeText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '600', flexShrink: 1 },
   streak: {
     flexDirection: 'row',
     alignItems: 'center',

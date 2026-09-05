@@ -21,7 +21,10 @@ export type Prefs = {
   haptics: boolean;
   /** Konfeti / kutlama animasyonları. */
   celebrations: boolean;
-  /** Akışta videolar kendiliğinden oynasın. */
+  /**
+   * Akışta videolar kendiliğinden oynasın. Varsayılan kapalı: açıkken kaydırılan
+   * her video indiriliyor ve mobil veri / Supabase bant genişliği hızla eriyor.
+   */
   autoplay: boolean;
   /** Ağırlık birimi — PR ekranı. */
   units: Units;
@@ -44,7 +47,7 @@ export const DEFAULT_PREFS: Prefs = {
   lang: deviceLang(),
   haptics: true,
   celebrations: true,
-  autoplay: true,
+  autoplay: false,
   units: 'kg',
   weeklyGoal: 4,
   defaultShare: 'team',

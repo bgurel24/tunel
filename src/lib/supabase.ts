@@ -12,6 +12,23 @@ const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
 export const isSupabaseConfigured =
   supabaseUrl.length > 0 && supabaseAnonKey.length > 0;
 
+/**
+ * Web derlemesi sırasında sayfalar Node'da bir kez çalıştırılıyor ve orada
+ * `window` yok — AsyncStorage'ın web uygulaması doğrudan localStorage'a
+ * uzandığı için oturum okuması build'i çökertiyordu.
+ *
+ * Sunucu tarafında oturum diye bir şey zaten olamaz; orada boş bir depo veriyoruz,
+ * tarayıcıya inince gerçek depo devreye giriyor. (React Native'de `window`
+ * tanımlı olduğu için native taraf bundan etkilenmiyor.)
+ */
+const noopStorage = {
+  getItem: async () => null,
+  setItem: async () => {},
+  removeItem: async () => {},
+};
+
+const authStorage = typeof window === 'undefined' ? noopStorage : AsyncStorage;
+
 // Konfigüre değilken de import edilebilsin diye placeholder değerlerle oluşturuyoruz.
 // Gerçek çağrılar yalnızca isSupabaseConfigured true iken yapılmalı (auth context guard eder).
 export const supabase = createClient(
@@ -19,7 +36,7 @@ export const supabase = createClient(
   isSupabaseConfigured ? supabaseAnonKey : 'placeholder-anon-key',
   {
     auth: {
-      storage: AsyncStorage,
+      storage: authStorage,
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: false,

@@ -1,13 +1,14 @@
 -- ============================================================
--- Tünel — Faz 3: Kişiye özel görev atama + rookie takibi
+-- Tünel — Faz 6: Kişiye özel görev atama + rookie takibi
 -- Supabase panelinde: SQL Editor > New query > bu dosyanın tamamını
 -- yapıştır > Run. Tekrar çalıştırılabilir (idempotent).
--- setup.sql'den SONRA çalıştırın.
+-- faz5_yardimci_kaptan.sql'den SONRA çalıştırın.
 -- ============================================================
 
--- Görevler: kişiye özel atama (null = tüm takım) + son gün.
+-- Görevler: kişiye özel atama (null = tüm takım).
+-- Not: son tarih için ayrı bir kolon açmıyoruz — faz2_haftalik.sql'deki
+-- due_at (timestamptz) kullanılıyor, geç yükleme ve süre uzatma ona bağlı.
 alter table public.tasks add column if not exists assigned_to uuid[];
-alter table public.tasks add column if not exists due_date date;
 
 -- Üyeler: rookie bayrağı (kaptan panelinde ayrı takip için).
 alter table public.team_members add column if not exists is_rookie boolean not null default false;

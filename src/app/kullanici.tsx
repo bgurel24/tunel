@@ -1,6 +1,9 @@
-// Kullanıcı profili — bir kişinin streak/rozet, rekor ve paylaşımları.
-// Profil gizliyse (ve takım arkadaşı değilsem) kilitli görünür.
+// Kullanıcı profili — bir kişinin streak/rozet, rekor, görev kanıtları ve
+// paylaşımları. Profil gizliyse (ve takım arkadaşı değilsem) kilitli görünür.
 // Sağ üstteki "…" menüsünden şikayet / engelleme.
+//
+// Görev kanıtları yalnızca ortak takımdakilere görünür; kaptan onay ekranında
+// karar verdikten sonra videoyu buradan tekrar izleyebilir.
 
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -9,6 +12,7 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 
 import { Avatar } from '@/components/Avatar';
 import { PostCard } from '@/components/PostCard';
+import { ProofList } from '@/components/ProofList';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
@@ -19,6 +23,7 @@ import { useT } from '@/lib/i18n';
 import { isHidden, unblockUser } from '@/lib/moderation';
 import { getPublicProfile, type PublicProfile } from '@/lib/profile';
 import { getUserPosts } from '@/lib/posts';
+import { getUserProofs, type UserProof } from '@/lib/proofs';
 import { getUserRecords, type MovementGroup } from '@/lib/records';
 import { getUserStats, type MyStats } from '@/lib/stats';
 import type { Post } from '@/lib/types';
@@ -38,6 +43,7 @@ export default function KullaniciScreen() {
   const [stats, setStats] = useState<MyStats | null>(null);
   const [records, setRecords] = useState<MovementGroup[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
+  const [proofs, setProofs] = useState<UserProof[]>([]);
   const [loading, setLoading] = useState(true);
 
   const load = useCallback(async () => {
@@ -51,14 +57,21 @@ export default function KullaniciScreen() {
       setStats(null);
       setRecords([]);
       setPosts([]);
+      setProofs([]);
       setLoading(false);
       return;
     }
 
-    const [s, r, p] = await Promise.all([getUserStats(id), getUserRecords(id), getUserPosts(id)]);
+    const [s, r, p, pr] = await Promise.all([
+      getUserStats(id),
+      getUserRecords(id),
+      getUserPosts(id),
+      getUserProofs(id),
+    ]);
     setStats(s);
     setRecords(r);
     setPosts(p);
+    setProofs(pr);
     setLoading(false);
   }, [id]);
 
@@ -207,6 +220,18 @@ export default function KullaniciScreen() {
               )}
 
               <View style={styles.section}>
+                <View style={styles.sectionHead}>
+                  <Text style={styles.sectionTitle}>{t('proofs.title')}</Text>
+                  {proofs.length > 0 && (
+                    <Text style={styles.sectionCount}>
+                      {t('proofs.count', { n: proofs.length })}
+                    </Text>
+                  )}
+                </View>
+                <ProofList proofs={proofs} emptyLabel={t('proofs.empty')} />
+              </View>
+
+              <View style={styles.section}>
                 <Text style={styles.sectionTitle}>{t('user.posts')}</Text>
                 {posts.length === 0 ? (
                   <Text style={styles.empty}>{t('user.noPosts')}</Text>
@@ -286,6 +311,8 @@ const styles = makeStyles((colors) => ({
   },
   badgeText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '500' },
   section: { marginTop: spacing.xl },
+  sectionHead: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  sectionCount: { color: colors.textFaint, fontSize: fontSize.xs, marginBottom: spacing.sm },
   sectionTitle: { color: colors.text, fontSize: fontSize.md, fontWeight: '500', marginBottom: spacing.sm },
   recCard: { backgroundColor: colors.surface, borderRadius: radius.md, paddingHorizontal: spacing.lg },
   recRow: {

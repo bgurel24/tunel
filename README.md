@@ -24,7 +24,12 @@ liderlik tablosu ve şarkılı paylaşımlar. React Native + Expo (dark neon tem
      ```bash
      cp .env.example .env
      ```
-   - `supabase/schema.sql` içeriğini Supabase SQL Editor'de çalıştırın (tablolar + RLS + RPC).
+   - Supabase SQL Editor'de **sırayla** çalıştırın:
+     1. `supabase/setup.sql` — tablolar, RLS, RPC'ler, storage (Faz 0 + Faz 1)
+     2. `supabase/faz1_tamamlama.sql` — görev–paylaşım bağı, red sebebi, rol RPC'leri, bildirimler
+
+     > İkinci dosya **zorunlu**: uygulama `posts.task_id`, `submissions.reject_note` ve
+     > `notifications` tablosunu bekliyor. Çalıştırılmazsa akış ve bildirimler boş gelir.
 
 3. Uygulamayı başlatın:
    ```bash
@@ -47,8 +52,18 @@ src/
   components/              Logo, GradientButton, Field, Screen, TabBar, Placeholder
   lib/                     supabase client, auth context
   theme.ts                marka renkleri / gradyan / boşluklar
-supabase/schema.sql        veritabanı şeması
+supabase/setup.sql         veritabanı şeması (tek dosya kurulum)
+supabase/faz1_tamamlama.sql  görev bağı + roller + bildirimler göçü
+supabase/functions/push/   Expo push gönderen Edge Function
 ```
+
+## Bildirimler
+
+- **Uygulama açıkken:** Supabase Realtime + yerel bildirim. Expo Go dahil her yerde çalışır,
+  ek kurulum gerektirmez.
+- **Uygulama kapalıyken (uzaktan push):** Expo Go'da **çalışmaz** (SDK 53+ kısıtı), development
+  build gerekir. Kurulum adımları `supabase/functions/push/index.ts` başındaki yorumda:
+  fonksiyonu deploy edip `pg_cron` ile dakikada bir tetiklemek yeterli.
 
 ## Yol haritası
 - **Faz 0 (bu):** tema, logo, giriş/kayıt, takıma katılma, tab iskeleti ✅

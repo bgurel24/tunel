@@ -17,7 +17,11 @@ import { useAuth } from '@/lib/auth';
 import { createVideoPost } from '@/lib/posts';
 import { getPrefs, type ShareTarget } from '@/lib/prefs';
 import { submitProof, uploadVideo } from '@/lib/tasks';
+import { MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, tooBigMessage } from '@/lib/upload';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
+
+/** Kayıt süresi — depolama maliyetinin asıl kaldıracı bu. */
+const MAX_SECONDS = 30;
 
 function durationLabel(ms?: number | null) {
   if (!ms) return null;
@@ -25,6 +29,11 @@ function durationLabel(ms?: number | null) {
   const m = Math.floor(total / 60);
   const s = total % 60;
   return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function sizeLabel(bytes?: number | null) {
+  if (!bytes) return null;
+  return `${Math.max(1, Math.round(bytes / 1024 / 1024))} MB`;
 }
 
 const SCOPE_BY_PREF: Record<ShareTarget, 'takim' | 'sosyal' | 'ikisi'> = {
@@ -43,6 +52,7 @@ export default function GorevYukleScreen() {
   const taskLabel = params.task ?? 'Hareket videosu';
 
   const [uri, setUri] = useState<string | null>(null);
+  const [mimeType, setMimeType] = useState<string | null>(null);
   const [label, setLabel] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [shareOn, setShareOn] = useState(false);
@@ -52,17 +62,25 @@ export default function GorevYukleScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Boyut kontrolü SEÇİM anında — yükleme başlayınca dosya zaten belleğe
+  // alınmış olur, orada yakalamak geç kalır.
   const applyAsset = (asset: ImagePicker.ImagePickerAsset) => {
+    if (asset.fileSize && asset.fileSize > MAX_UPLOAD_BYTES) {
+      setUri(null);
+      setLabel(null);
+      setError(tooBigMessage());
+      return;
+    }
     setError(null);
     setUri(asset.uri);
-    const d = durationLabel(asset.duration);
-    setLabel(d ? `Video · ${d}` : t('proof.selected'));
+    setMimeType(asset.mimeType ?? null);
+    const bits = [durationLabel(asset.duration), sizeLabel(asset.fileSize)].filter(Boolean);
+    setLabel(bits.length ? `Video · ${bits.join(' · ')}` : t('proof.selected'));
   };
 
   const pickFromGallery = async () => {
     const res = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['videos'],
-      quality: 1,
     });
     if (!res.canceled && res.assets[0]) applyAsset(res.assets[0]);
   };
@@ -70,12 +88,15 @@ export default function GorevYukleScreen() {
   const recordVideo = async () => {
     const perm = await ImagePicker.requestCameraPermissionsAsync();
     if (!perm.granted) {
-      setError('Kamera izni verilmedi.');
+      setError(t('proof.noCamera'));
       return;
     }
     const res = await ImagePicker.launchCameraAsync({
       mediaTypes: ['videos'],
-      videoMaxDuration: 60,
+      videoMaxDuration: MAX_SECONDS,
+      // Yalnızca iOS'ta etkili; Android'de expo-image-picker sıkıştırma yapmıyor,
+      // orada süre limiti + boyut kontrolü devrede.
+      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
     });
     if (!res.canceled && res.assets[0]) applyAsset(res.assets[0]);
   };
@@ -95,7 +116,7 @@ export default function GorevYukleScreen() {
     }
 
     // Videoyu bir kez yükle, hem kanıt hem paylaşım için kullan.
-    const up = await uploadVideo(uri);
+    const up = await uploadVideo(uri, mimeType);
     if (up.error || !up.path) {
       setSubmitting(false);
       setError(up.error ?? t('proof.uploadFailed'));
@@ -115,7 +136,13 @@ export default function GorevYukleScreen() {
       const taskTeamId = params.teamId ?? null;
       const teamForPost = shareScope === 'sosyal' ? null : taskTeamId;
       const toSocial = shareScope !== 'takim';
-      const { error } = await createVideoPost(up.path, note, teamForPost, toSocial);
+      const { error } = await createVideoPost(
+        up.path,
+        note,
+        teamForPost,
+        toSocial,
+        params.taskId ?? null
+      );
       if (error) {
         setSubmitting(false);
         setError(error);
@@ -140,7 +167,7 @@ export default function GorevYukleScreen() {
 
       <Text style={styles.taskLabel}>{taskLabel}</Text>
       <Text style={styles.lead}>
-        {t('proof.lead')}
+        {t('proof.lead')} {t('proof.limits', { sec: MAX_SECONDS, mb: MAX_UPLOAD_MB })}
       </Text>
 
       {uri ? (

@@ -11,6 +11,7 @@ import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
+import { NotificationBridge } from '@/components/NotificationBridge';
 import { FeedbackProvider } from '@/components/Toast';
 import { AuthProvider } from '@/lib/auth';
 import { fontAssets } from '@/lib/fonts';
@@ -58,6 +59,7 @@ export default function RootLayout() {
         <ThemeProvider value={navTheme}>
           <AuthProvider>
             <FeedbackProvider>
+              <NotificationBridge />
               <StatusBar style="light" />
               <Stack
                 screenOptions={{
@@ -71,6 +73,7 @@ export default function RootLayout() {
                 <Stack.Screen name="join-team" />
                 <Stack.Screen name="liderlik" />
                 <Stack.Screen name="kaptan" />
+                <Stack.Screen name="uyeler" />
                 <Stack.Screen name="gorev-yukle" />
                 <Stack.Screen name="pr" />
                 <Stack.Screen name="kullanici" />

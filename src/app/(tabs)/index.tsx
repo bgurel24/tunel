@@ -23,6 +23,7 @@ import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
 import { getCrew, type CrewMember } from '@/lib/crew';
 import { useT } from '@/lib/i18n';
+import { useUnreadCount } from '@/lib/notifications';
 import { getFeed } from '@/lib/posts';
 import { getActiveSessions, type GymSession } from '@/lib/sessions';
 import { getStarterState, type StarterState } from '@/lib/starter';
@@ -46,6 +47,7 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [focused, setFocused] = useState(true);
+  const unread = useUnreadCount();
   const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
 
   // Görünürlük geri bildirimi gelene kadar ilk kart oynasın.
@@ -194,7 +196,12 @@ export default function FeedScreen() {
             <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textDim} />
           </Pressable>
           <Pressable onPress={() => router.push('/bildirimler')} hitSlop={10}>
-            <Ionicons name="notifications-outline" size={22} color={colors.textDim} />
+            <Ionicons
+              name={unread > 0 ? 'notifications' : 'notifications-outline'}
+              size={22}
+              color={unread > 0 ? colors.accent : colors.textDim}
+            />
+            {unread > 0 && <View style={styles.unreadDot} />}
           </Pressable>
         </View>
         <View style={styles.hairline} />
@@ -243,6 +250,18 @@ const styles = makeStyles((colors) => ({
     backgroundColor: colors.accentBg,
   },
   headerCallText: { color: colors.accent, fontSize: fontSize.xs, fontWeight: '700' },
+  // Zil ikonunun köşesindeki okunmadı noktası.
+  unreadDot: {
+    position: 'absolute',
+    top: -1,
+    right: -1,
+    width: 9,
+    height: 9,
+    borderRadius: 5,
+    backgroundColor: colors.brandFrom,
+    borderWidth: 1.5,
+    borderColor: colors.bg,
+  },
   callRow: {
     flexDirection: 'row',
     alignItems: 'center',

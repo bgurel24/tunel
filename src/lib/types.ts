@@ -15,6 +15,8 @@ export type Post = {
   gym?: string | null;
   /** Antrenman etiketi — "Bacak", "Göğüs", "Kardiyo" gibi. */
   workoutTag?: string | null;
+  /** Dolu ise bu paylaşım bir görev kanıtı — kartta görev adı rozeti çıkar. */
+  taskTitle?: string | null;
   isLive: boolean;
   // null => görsel yok, barbell placeholder gösterilir (demo/ağsız durum)
   imageUrl?: string | null;

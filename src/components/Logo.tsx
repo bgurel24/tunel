@@ -1,6 +1,13 @@
 // Tünel logosu — react-native-svg. Portal + segmentler + top + perspektif yol.
 // showWordmark ile altına gradyan "TÜNEL" + "TUNNEL VISION" alt başlığı gelir.
+//
+// Gradyan id'leri her örnekte benzersiz üretiliyor. Web'de react-native-svg
+// gerçek DOM'a çıkıyor ve SVG id'leri belge genelinde tekil olmak zorunda —
+// sabit id kullanılınca ekranda ikinci bir Logo olduğunda `url(#tg)` referansı
+// kopuyor, gradyanla boyanan her şey (kemer, "TÜNEL" yazısı) görünmez oluyordu.
+// Native'de her SVG yalıtılmış olduğu için orada sorun çıkmıyordu.
 
+import { useId } from 'react';
 import Svg, {
   Defs,
   Ellipse,
@@ -26,11 +33,16 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
   useThemeTick();
   const markHeight = (size * MARK_H) / MARK_W;
 
+  // useId ":r0:" gibi değer döner; iki nokta url(#...) referansında geçersiz.
+  const uid = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const markGrad = `tunnel-mark-${uid}`;
+  const wordGrad = `tunnel-word-${uid}`;
+
   return (
     <View style={styles.wrap}>
       <Svg width={size} height={markHeight} viewBox="60 40 280 345">
         <Defs>
-          <LinearGradient id="tg" x1="0.12" y1="0.05" x2="0.9" y2="1">
+          <LinearGradient id={markGrad} x1="0.12" y1="0.05" x2="0.9" y2="1">
             <Stop offset="0" stopColor={colors.brandFrom} />
             <Stop offset="0.5" stopColor={colors.brandMid} />
             <Stop offset="1" stopColor={colors.brandTo} />
@@ -41,7 +53,7 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
         <Path
           d="M88 366 L88 176 A112 112 0 0 1 312 176 L312 366"
           fill="none"
-          stroke="url(#tg)"
+          stroke={`url(#${markGrad})`}
           strokeWidth={4.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -49,7 +61,7 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
         <Path
           d="M126 366 L126 186 A74 74 0 0 1 274 186 L274 366"
           fill="none"
-          stroke="url(#tg)"
+          stroke={`url(#${markGrad})`}
           strokeWidth={3.5}
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -71,20 +83,20 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
             y1={y1}
             x2={x2}
             y2={y2}
-            stroke="url(#tg)"
+            stroke={`url(#${markGrad})`}
             strokeWidth={2.4}
             strokeLinecap="round"
           />
         ))}
         {/* Yol */}
-        <Line x1={190} y1={242} x2={150} y2={362} stroke="url(#tg)" strokeWidth={3.2} strokeLinecap="round" />
-        <Line x1={210} y1={242} x2={250} y2={362} stroke="url(#tg)" strokeWidth={3.2} strokeLinecap="round" />
+        <Line x1={190} y1={242} x2={150} y2={362} stroke={`url(#${markGrad})`} strokeWidth={3.2} strokeLinecap="round" />
+        <Line x1={210} y1={242} x2={250} y2={362} stroke={`url(#${markGrad})`} strokeWidth={3.2} strokeLinecap="round" />
         <Line
           x1={200}
           y1={246}
           x2={200}
           y2={362}
-          stroke="url(#tg)"
+          stroke={`url(#${markGrad})`}
           strokeWidth={3.4}
           strokeDasharray="7 12"
           strokeLinecap="round"
@@ -104,7 +116,7 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
       {showWordmark && (
         <Svg width={size} height={size * 0.34} viewBox="0 0 280 96">
           <Defs>
-            <LinearGradient id="wg" x1="0" y1="0" x2="1" y2="1">
+            <LinearGradient id={wordGrad} x1="0" y1="0" x2="1" y2="1">
               <Stop offset="0" stopColor={colors.brandFrom} />
               <Stop offset="1" stopColor={colors.brandTo} />
             </LinearGradient>
@@ -116,7 +128,7 @@ export function Logo({ size = 150, showWordmark = true }: Props) {
             fontFamily={font.displayBold}
             letterSpacing="6"
             textAnchor="middle"
-            fill="url(#wg)"
+            fill={`url(#${wordGrad})`}
           >
             TÜNEL
           </SvgText>

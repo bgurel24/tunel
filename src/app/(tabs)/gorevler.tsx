@@ -99,15 +99,16 @@ export default function GorevlerScreen() {
   const assignedTasks = tasks.filter((x) => x.assignedToMe);
   const teamTasks = tasks.filter((x) => !x.assignedToMe);
 
+  // due_at ISO damgasi — gun.ay olarak goster.
   const fmtDue = (iso: string) => {
-    const [, m, d] = iso.split('-');
-    return `${d}.${m}`;
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
   };
 
   const renderTask = (task: TeamTask, assigned: boolean) => {
     const overdue =
-      assigned && task.dueDate && task.myStatus !== 'approved'
-        ? new Date(task.dueDate).getTime() < new Date().setHours(0, 0, 0, 0)
+      assigned && task.dueAt && task.myStatus !== 'approved'
+        ? new Date(task.dueAt).getTime() < new Date().setHours(0, 0, 0, 0)
         : false;
     return (
       <View key={task.id} style={[styles.taskRow, assigned && styles.taskRowAssigned]}>
@@ -122,8 +123,8 @@ export default function GorevlerScreen() {
           <Text style={styles.taskTitle}>{task.title}</Text>
           <Text style={[styles.taskSub, overdue && { color: colors.danger }]}>
             {t('tasks.points', { n: task.points })}
-            {task.dueDate
-              ? ` · ${overdue ? t('tasks.overdue') : t('tasks.due', { date: fmtDue(task.dueDate) })}`
+            {task.dueAt
+              ? ` · ${overdue ? t('tasks.overdue') : t('tasks.due', { date: fmtDue(task.dueAt) })}`
               : ''}
           </Text>
         </View>

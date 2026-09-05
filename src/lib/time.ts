@@ -51,6 +51,47 @@ export function timeUntil(iso: string): string {
   return clockLabel(iso);
 }
 
+/**
+ * Görev son tarihi: "3 gün kaldı", "bugün son gün", "2 gün geçti".
+ * Gün farkı takvim günü üzerinden — saat kalıntısı yüzünden "0 gün" demesin.
+ */
+export function dueLabel(iso: string): string {
+  const tr = lang() === 'tr';
+  const days = daysUntil(iso);
+
+  if (days > 1) return tr ? `${days} gün kaldı` : `${days} days left`;
+  if (days === 1) return tr ? 'son gün yarın' : 'due tomorrow';
+  if (days === 0) return tr ? 'bugün son gün' : 'due today';
+  if (days === -1) return tr ? '1 gün geçti' : '1 day overdue';
+  return tr ? `${-days} gün geçti` : `${-days} days overdue`;
+}
+
+/** Bugünden hedefe kalan takvim günü — geçmişse negatif. */
+export function daysUntil(iso: string): number {
+  return Math.round(
+    (new Date(iso).setHours(0, 0, 0, 0) - new Date().setHours(0, 0, 0, 0)) / 86400000
+  );
+}
+
+/** Haftanın başı (Pazartesi 00:00). offset 0 bu hafta, -1 geçen hafta. */
+export function weekStart(offset = 0): Date {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  // getDay(): 0 Pazar … 6 Cumartesi. Pazartesi'yi 0'a çekiyoruz.
+  const fromMonday = (d.getDay() + 6) % 7;
+  d.setDate(d.getDate() - fromMonday + offset * 7);
+  return d;
+}
+
+/** "28 Tem – 3 Ağu" — rapor başlığı için hafta aralığı. */
+export function weekRangeLabel(start: Date): string {
+  const locale = LOCALE[lang()];
+  const end = new Date(start);
+  end.setDate(end.getDate() + 6);
+  const fmt = (d: Date) => d.toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+  return `${fmt(start)} – ${fmt(end)}`;
+}
+
 /** "20:30" — bugünse yalnız saat, değilse "yarın 20:30" / "3 Ağu 20:30". */
 export function clockLabel(iso: string): string {
   const tr = lang() === 'tr';

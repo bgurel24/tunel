@@ -1,5 +1,5 @@
 -- ============================================================
--- Tünel — Faz 4: Takım sohbeti
+-- Tünel — Faz 7: Takım sohbeti
 -- Supabase panelinde: SQL Editor > New query > tamamını yapıştır > Run.
 -- Tekrar çalıştırılabilir (idempotent). setup.sql'den SONRA çalıştırın.
 -- ============================================================

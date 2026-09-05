@@ -1,5 +1,8 @@
 // Profil — gradyan kapak, istatistik kartları, rozetler, aktivite ısı haritası,
-// takımların (isim/rol/kod, kaptan silebilir) ve kısayollar.
+// takımların (isim/rol/kod, kaptan silebilir), görev kanıtların ve kısayollar.
+//
+// Görev kanıtları yüklendikten sonra burada kalır: kaptan onaylasa da reddetse de
+// video profilde durur, kaptan istediği zaman girip izleyebilir.
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -12,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityHeatmap } from '@/components/ActivityHeatmap';
 import { Avatar } from '@/components/Avatar';
 import { Logo } from '@/components/Logo';
+import { ProofList } from '@/components/ProofList';
 import { Screen } from '@/components/Screen';
 import { ListSkeleton, Skeleton } from '@/components/Skeleton';
 import { useTabBarPadding } from '@/components/TabBar';
@@ -21,6 +25,7 @@ import { Touchable } from '@/components/Touchable';
 import { useAuth } from '@/lib/auth';
 import { useT } from '@/lib/i18n';
 import { getMyProfile, pickAvatarImage, uploadAvatar } from '@/lib/profile';
+import { getUserProofs, type UserProof } from '@/lib/proofs';
 import { getMyStats, type MyStats } from '@/lib/stats';
 import {
   deleteTeam,
@@ -58,6 +63,9 @@ export default function ProfilScreen() {
   const [stats, setStats] = useState<MyStats | null>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [proofs, setProofs] = useState<UserProof[]>([]);
+
+  const isCaptainSomewhere = teams.some((team) => team.role === 'captain');
 
   const load = useCallback(() => {
     if (!configured) {
@@ -69,6 +77,7 @@ export default function ProfilScreen() {
       setStats(s);
       setAvatarUrl(p?.avatarUrl ?? null);
       setLoading(false);
+      if (p?.id) getUserProofs(p.id).then(setProofs);
     });
   }, [configured]);
 
@@ -132,7 +141,7 @@ export default function ProfilScreen() {
   const askLeave = async (team: MyTeam) => {
     const ok = await confirm({
       title: t('team.leaveTitle', { name: team.name }),
-      message: t(team.role === 'captain' ? 'team.leaveCaptainMessage' : 'team.leaveMessage'),
+      message: t(team.isOwner ? 'team.leaveCaptainMessage' : 'team.leaveMessage'),
       confirmLabel: t('team.leave'),
       destructive: true,
       icon: 'exit-outline',
@@ -145,20 +154,24 @@ export default function ProfilScreen() {
   };
 
   const openTeamMenu = async (team: MyTeam) => {
-    const captain = team.role === 'captain';
+    // Takım adı, davet kodu ve silme yalnızca SAHİPTE (teams.captain_id).
+    // Yardımcı kaptanların rolü de 'captain' olduğu için burada role'e bakmak
+    // onlara çalışmayacak seçenekler gösterirdi — sunucu zaten reddediyor.
+    const owner = team.isOwner;
     const choice = await menu({
       title: team.name,
       message: `${t('profile.code')}: ${team.inviteCode}`,
       options: [
         { key: 'share', label: t('team.shareCode'), icon: 'share-outline' },
-        ...(captain
+        { key: 'members', label: t('members.title'), icon: 'people-outline' },
+        ...(owner
           ? [
               { key: 'rename', label: t('team.rename'), icon: 'create-outline' as const },
               { key: 'code', label: t('team.newCode'), icon: 'refresh-outline' as const },
             ]
           : []),
         { key: 'leave', label: t('team.leave'), icon: 'exit-outline', destructive: true },
-        ...(captain
+        ...(owner
           ? [
               {
                 key: 'delete',
@@ -172,6 +185,7 @@ export default function ProfilScreen() {
     });
 
     if (choice === 'share') shareCode(team);
+    if (choice === 'members') router.push({ pathname: '/uyeler', params: { teamId: team.id } });
     if (choice === 'rename') askRename(team);
     if (choice === 'code') askNewCode(team);
     if (choice === 'leave') askLeave(team);
@@ -334,6 +348,13 @@ export default function ProfilScreen() {
                   </View>
                 ))
               )}
+
+              {/* Görev kanıtların — onaylansa da reddedilse de burada kalır */}
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{t('proofs.title')}</Text>
+                {proofs.length > 0 && <Text style={styles.count}>{proofs.length}</Text>}
+              </View>
+              <ProofList proofs={proofs} emptyLabel={t('proofs.emptyMine')} />
             </>
           )}
 
@@ -341,7 +362,10 @@ export default function ProfilScreen() {
           <View style={styles.menu}>
             <MenuRow icon="barbell-outline" label={t('profile.records')} onPress={() => router.push('/pr')} />
             <MenuRow icon="people-outline" label={t('profile.joinTeam')} onPress={() => router.push('/join-team')} />
-            <MenuRow icon="shield-checkmark-outline" label={t('profile.captainPanel')} onPress={() => router.push('/kaptan')} />
+            {/* Kaptan paneli yalnızca kaptanlara — üyeye boş ekran açılmasın. */}
+            {isCaptainSomewhere && (
+              <MenuRow icon="shield-checkmark-outline" label={t('profile.captainPanel')} onPress={() => router.push('/kaptan')} />
+            )}
             <MenuRow icon="trophy-outline" label={t('profile.leaderboard')} onPress={() => router.push('/liderlik')} />
             <MenuRow icon="settings-outline" label={t('profile.settings')} onPress={() => router.push('/ayarlar')} last />
           </View>

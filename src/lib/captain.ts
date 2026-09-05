@@ -1,17 +1,24 @@
 // Kaptan paneli veri katmanı — kanıtlar (video linkli) + üye/görev ızgarası. Gerçek Supabase.
 
 import { supabase } from '@/lib/supabase';
+import { isLate, isOverdue } from '@/lib/tasks';
 
 export type GridStatus = 'approved' | 'pending' | 'rejected' | 'missing';
 export type SubStatus = 'pending' | 'approved' | 'rejected';
 
 export type Submission = {
   id: string;
+  /** Üyenin profiline gitmek için — kaptan videoyu sonra oradan da izler. */
+  memberId: string | null;
   member: string;
   taskTitle: string;
   note: string | null;
   status: SubStatus;
   videoUrl: string | null;
+  /** Reddedildiyse kaptanın yazdığı sebep. */
+  rejectNote: string | null;
+  /** Kanıt son tarihten sonra mı geldi. */
+  late: boolean;
 };
 
 export type MemberRow = {
@@ -29,7 +36,9 @@ export type CaptainTask = {
   approvedCount: number;
   /** Kişiye özel atananların id listesi; null = tüm takım. */
   assignedTo: string[] | null;
-  dueDate: string | null;
+  dueAt: string | null;
+  /** Son tarih geçti mi. */
+  overdue: boolean;
   /** Görevden sorumlu üyelerin durum satırları (atama varsa yalnız onlar). */
   rows: { userId: string; name: string; isRookie: boolean; status: GridStatus; submissionId: string | null; videoUrl: string | null }[];
 };
@@ -47,15 +56,16 @@ const ORDER: Record<SubStatus, number> = { pending: 0, approved: 1, rejected: 2 
 export async function getCaptainData(teamId: string): Promise<CaptainData> {
   const { data: tasksData } = await supabase
     .from('tasks')
-    .select('id, title, points, assigned_to, due_date')
+    .select('id, title, points, assigned_to, due_at')
     .eq('team_id', teamId)
+    .order('due_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true });
   const tasks = (tasksData ?? []) as {
     id: string;
     title: string;
     points: number | null;
     assigned_to: string[] | null;
-    due_date: string | null;
+    due_at: string | null;
   }[];
   const taskIds = tasks.map((t) => t.id);
 
@@ -75,22 +85,28 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
   if (taskIds.length) {
     const { data } = await supabase
       .from('submissions')
-      .select('id, task_id, user_id, status, note, video_path, profiles!submissions_user_id_fkey(username)')
+      .select('id, task_id, user_id, status, note, reject_note, submitted_at, video_path, profiles!submissions_user_id_fkey(username)')
       .in('task_id', taskIds);
     subs = data ?? [];
   }
 
   const submissions: Submission[] = subs
-    .map((s) => ({
-      id: String(s.id),
-      member: s.profiles?.username ?? '—',
-      taskTitle: tasks.find((t) => t.id === s.task_id)?.title ?? 'Görev',
-      note: s.note ?? null,
-      status: s.status as SubStatus,
-      videoUrl: s.video_path
-        ? supabase.storage.from('posts').getPublicUrl(s.video_path).data.publicUrl
-        : null,
-    }))
+    .map((s) => {
+      const task = tasks.find((t) => t.id === s.task_id);
+      return {
+        id: String(s.id),
+        memberId: s.user_id ? String(s.user_id) : null,
+        member: s.profiles?.username ?? '—',
+        taskTitle: task?.title ?? 'Görev',
+        note: s.note ?? null,
+        status: s.status as SubStatus,
+        videoUrl: s.video_path
+          ? supabase.storage.from('posts').getPublicUrl(s.video_path).data.publicUrl
+          : null,
+        rejectNote: s.reject_note ?? null,
+        late: isLate(s.submitted_at ?? s.created_at, task?.due_at ?? null),
+      };
+    })
     .sort((a, b) => ORDER[a.status] - ORDER[b.status]);
 
   const memberRows: MemberRow[] = members.map((mem) => ({
@@ -115,7 +131,8 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
         points: t.points ?? 10,
         approvedCount: subs.filter((s) => s.task_id === t.id && s.status === 'approved').length,
         assignedTo: t.assigned_to?.length ? t.assigned_to : null,
-        dueDate: t.due_date ?? null,
+        dueAt: t.due_at ?? null,
+        overdue: isOverdue(t.due_at),
         rows: responsible.map((m) => {
           const sub = subs.find((s) => s.task_id === t.id && s.user_id === m.id);
           return {
@@ -139,11 +156,15 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
 
 export async function decideSubmission(
   id: string,
-  approve: boolean
+  approve: boolean,
+  rejectNote?: string | null
 ): Promise<{ error: string | null }> {
   const { error } = await supabase
     .from('submissions')
-    .update({ status: approve ? 'approved' : 'rejected' })
+    .update({
+      status: approve ? 'approved' : 'rejected',
+      reject_note: approve ? null : rejectNote?.trim() || null,
+    })
     .eq('id', id);
   return { error: error?.message ?? null };
 }
