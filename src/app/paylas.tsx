@@ -44,6 +44,20 @@ export default function PaylasScreen() {
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const flip = () => setFacing((f) => (f === 'back' ? 'front' : 'back'));
+
+  // Cift dokunma tespiti: 300 ms icinde ikinci dokunus gelirse kamerayi cevir.
+  const lastTap = useRef(0);
+  const onCameraTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      flip();
+    } else {
+      lastTap.current = now;
+    }
+  };
+
   const capture = async () => {
     const shot = await cameraRef.current?.takePictureAsync({ quality: 0.6 });
     if (shot?.uri) setPhotoUri(shot.uri);
@@ -183,7 +197,9 @@ export default function PaylasScreen() {
   // --- Canlı kamera ---
   return (
     <View style={styles.fill}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mirror />
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+      {/* Cift dokunma: on/arka kamera. Tek dokunma bir sey yapmaz, deklansor asagida. */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={onCameraTap} />
       <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
         <View style={styles.cameraTop}>
           <Pressable onPress={() => router.back()} hitSlop={12} style={styles.roundBtn}>
@@ -202,7 +218,7 @@ export default function PaylasScreen() {
             <View style={styles.shutterInner} />
           </Pressable>
           <Pressable
-            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            onPress={flip}
             style={styles.roundBtn}
           >
             <Ionicons name="camera-reverse-outline" size={26} color="#fff" />

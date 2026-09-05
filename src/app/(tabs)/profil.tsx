@@ -193,7 +193,12 @@ export default function ProfilScreen() {
   };
 
   const changeAvatar = async () => {
-    const uri = await pickAvatarImage();
+    let uri: string | null = null;
+    try {
+      uri = await pickAvatarImage();
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : String(e), 'error');
+    }
     if (!uri) return;
     setUploadingAvatar(true);
     const { error, avatarUrl: url } = await uploadAvatar(uri);

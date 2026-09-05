@@ -85,7 +85,10 @@ export async function setProfilePrivacy(isPrivate: boolean): Promise<{ error: st
 /** Galeriden kare bir fotoğraf seçtirir. İptal edilirse null döner. */
 export async function pickAvatarImage(): Promise<string | null> {
   const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-  if (!perm.granted) return null;
+  // iOS'ta "Secili fotograflar" (limited) izninde granted=false gelir ama secim yapilabilir.
+  if (!perm.granted && perm.accessPrivileges !== 'limited') {
+    throw new Error(t('profile.photoPermission'));
+  }
 
   const result = await ImagePicker.launchImageLibraryAsync({
     mediaTypes: ['images'],

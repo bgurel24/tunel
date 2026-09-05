@@ -3,9 +3,10 @@
 
 import { Ionicons } from '@expo/vector-icons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -35,6 +36,12 @@ export default function SohbetScreen() {
   const t = useT();
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const [kbOpen, setKbOpen] = useState(false);
+  useEffect(() => {
+    const s = Keyboard.addListener('keyboardWillShow', () => setKbOpen(true));
+    const h = Keyboard.addListener('keyboardWillHide', () => setKbOpen(false));
+    return () => { s.remove(); h.remove(); };
+  }, []);
   const { toast } = useToast();
 
   const [team, setTeam] = useState<MyTeam | null>(null);
@@ -145,7 +152,7 @@ export default function SohbetScreen() {
             }
           />
 
-          <View style={[styles.inputRow, { paddingBottom: Math.max(insets.bottom, spacing.md) }]}>
+          <View style={[styles.inputRow, { paddingBottom: kbOpen ? spacing.sm : Math.max(insets.bottom, spacing.md) }]}>
             <TextInput
               value={draft}
               onChangeText={setDraft}
