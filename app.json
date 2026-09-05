@@ -46,7 +46,10 @@
           "microphonePermission": "Video çekiminde ses için mikrofona erişir."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

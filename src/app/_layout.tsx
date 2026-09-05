@@ -1,6 +1,6 @@
 // Kök layout — marka fontları, tema, tercihler, güvenli alan, auth, toast ve Stack.
 
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';

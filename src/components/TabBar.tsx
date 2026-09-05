@@ -2,7 +2,10 @@
 // Kök öğe mutlak konumlu: içerik barın altından geçsin, blur anlamlı olsun.
 
 import { Ionicons } from '@expo/vector-icons';
-import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import type { Tabs } from 'expo-router';
+
+// SDK 57: expo-router @react-navigation'i kendi icinde tasiyor; tipi oradan turet.
+type BottomTabBarProps = Parameters<NonNullable<React.ComponentProps<typeof Tabs>['tabBar']>>[0];
 import { BlurView } from 'expo-blur';
 import { Haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';

@@ -192,7 +192,11 @@ const styles = makeStyles((colors) => ({
   container: { justifyContent: 'flex-end' },
   // Video henüz indirilmedi — dokununca yüklensin diye sade bir kapak.
   poster: {
-    ...StyleSheet.absoluteFillObject,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
