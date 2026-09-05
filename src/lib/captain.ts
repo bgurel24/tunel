@@ -1,5 +1,6 @@
 // Kaptan paneli veri katmanı — kanıtlar (video linkli) + üye/görev ızgarası. Gerçek Supabase.
 
+import { displayName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { isLate, isOverdue } from '@/lib/tasks';
 
@@ -71,13 +72,13 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
 
   const { data: membersData } = await supabase
     .from('team_members')
-    .select('is_rookie, profiles!team_members_user_id_fkey(id, username)')
+    .select('is_rookie, profiles!team_members_user_id_fkey(id, username, full_name)')
     .eq('team_id', teamId);
   const members = ((membersData ?? []) as any[])
     .filter((m) => m.profiles)
     .map((m) => ({
       id: m.profiles.id as string,
-      name: m.profiles.username as string,
+      name: displayName(m.profiles),
       isRookie: !!m.is_rookie,
     }));
 
@@ -85,7 +86,7 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
   if (taskIds.length) {
     const { data } = await supabase
       .from('submissions')
-      .select('id, task_id, user_id, status, note, reject_note, submitted_at, video_path, profiles!submissions_user_id_fkey(username)')
+      .select('id, task_id, user_id, status, note, reject_note, submitted_at, video_path, profiles!submissions_user_id_fkey(username, full_name)')
       .in('task_id', taskIds);
     subs = data ?? [];
   }
@@ -96,7 +97,7 @@ export async function getCaptainData(teamId: string): Promise<CaptainData> {
       return {
         id: String(s.id),
         memberId: s.user_id ? String(s.user_id) : null,
-        member: s.profiles?.username ?? '—',
+        member: displayName(s.profiles),
         taskTitle: task?.title ?? 'Görev',
         note: s.note ?? null,
         status: s.status as SubStatus,
@@ -211,13 +212,13 @@ function streakOf(days: Set<string>): number {
 export async function getTeamActivity(teamId: string): Promise<MemberActivity[]> {
   const { data: membersData } = await supabase
     .from('team_members')
-    .select('is_rookie, profiles!team_members_user_id_fkey(id, username)')
+    .select('is_rookie, profiles!team_members_user_id_fkey(id, username, full_name)')
     .eq('team_id', teamId);
   const members = ((membersData ?? []) as any[])
     .filter((m) => m.profiles)
     .map((m) => ({
       id: m.profiles.id as string,
-      name: m.profiles.username as string,
+      name: displayName(m.profiles),
       isRookie: !!m.is_rookie,
     }));
   if (!members.length) return [];

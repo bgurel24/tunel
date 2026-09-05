@@ -1,6 +1,7 @@
 // Takım sohbeti veri katmanı — mesajlar + canlı (realtime) abonelik.
 // Sadece takım üyeleri okuyup yazabilir; kuralı veritabanı (RLS) uygular.
 
+import { displayName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 import { t } from '@/lib/i18n';
 
@@ -21,7 +22,7 @@ export async function getMessages(teamId: string): Promise<ChatMessage[]> {
 
   const { data, error } = await supabase
     .from('team_messages')
-    .select('id, user_id, body, created_at, profiles!team_messages_user_id_fkey(username)')
+    .select('id, user_id, body, created_at, profiles!team_messages_user_id_fkey(username, full_name)')
     .eq('team_id', teamId)
     .order('created_at', { ascending: false })
     .limit(PAGE);
@@ -31,7 +32,7 @@ export async function getMessages(teamId: string): Promise<ChatMessage[]> {
   return (data as any[]).map((m) => ({
     id: String(m.id),
     userId: m.user_id,
-    username: m.profiles?.username ?? 'kullanıcı',
+    username: displayName(m.profiles, 'kullanıcı'),
     body: m.body,
     createdAt: m.created_at,
     isMine: m.user_id === uid,
@@ -75,10 +76,10 @@ export function subscribeMessages(
         let username = 'kullanıcı';
         const { data } = await supabase
           .from('profiles')
-          .select('username')
+          .select('username, full_name')
           .eq('id', row.user_id)
           .single();
-        if (data?.username) username = data.username;
+        if (data) username = displayName(data, 'kullanıcı');
         onNew({
           id: String(row.id),
           userId: row.user_id,

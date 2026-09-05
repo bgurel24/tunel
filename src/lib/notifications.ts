@@ -18,6 +18,7 @@ import { Platform } from 'react-native';
 import { t } from '@/lib/i18n';
 import { getPrefs } from '@/lib/prefs';
 import { avatarUrlFrom } from '@/lib/profile';
+import { displayName } from '@/lib/names';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
 
@@ -137,7 +138,8 @@ export type NotificationKind =
   | 'submission'
   | 'decision'
   | 'task'
-  | 'session';
+  | 'session'
+  | 'join';
 
 export type AppNotification = {
   id: string;
@@ -156,7 +158,7 @@ export type AppNotification = {
 
 const INBOX_SELECT =
   'id, kind, detail, subject, actor_id, post_id, team_id, task_id, read_at, created_at, ' +
-  'actor:profiles!notifications_actor_id_fkey(username, avatar_path)';
+  'actor:profiles!notifications_actor_id_fkey(username, full_name, avatar_path)';
 
 function mapNotification(row: any): AppNotification {
   return {
@@ -165,7 +167,7 @@ function mapNotification(row: any): AppNotification {
     detail: row.detail ?? null,
     subject: row.subject ?? null,
     actorId: row.actor_id ?? null,
-    actorName: row.actor?.username ?? null,
+    actorName: row.actor ? displayName(row.actor) : null,
     actorAvatarUrl: avatarUrlFrom(row.actor?.avatar_path),
     postId: row.post_id ?? null,
     teamId: row.team_id ?? null,
@@ -220,6 +222,10 @@ export function notificationText(n: AppNotification): string {
       return t('inbox.task', { task: subject });
     case 'session':
       return subject ? t('inbox.sessionAt', { who, gym: subject }) : t('inbox.session', { who });
+    case 'join':
+      if (n.detail === 'approved') return t('inbox.joinApproved', { team: subject });
+      if (n.detail === 'rejected') return t('inbox.joinRejected', { team: subject });
+      return t('inbox.joinRequest', { who, team: subject });
   }
 }
 

@@ -54,6 +54,11 @@ export default function TeamScreen() {
       const res = await joinTeam(code);
       setLoading(false);
       if (res.error) return setError(res.error);
+      if (res.pending) {
+        // Kaptan onaylayana kadar üye değil — kutlama yok, bilgi var.
+        setSuccess(t('team.pending', { name: res.teamName ?? '' }));
+        return;
+      }
       setSuccess(t('team.joined', { name: res.teamName ?? '' }));
       celebrate(t('team.joinedCelebrate', { name: res.teamName ?? '' }));
     } else {

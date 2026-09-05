@@ -1,6 +1,7 @@
 // Akış üstündeki "ekip şeridi" verisi — takım arkadaşların ve bugün antrenman yapanlar.
 
 import { getHiddenUserIds } from '@/lib/moderation';
+import { displayName } from '@/lib/names';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export type CrewMember = {
@@ -29,7 +30,7 @@ export async function getCrew(): Promise<CrewMember[]> {
 
   const { data: rows } = await supabase
     .from('team_members')
-    .select('user_id, profiles!team_members_user_id_fkey(username)')
+    .select('user_id, profiles!team_members_user_id_fkey(username, full_name)')
     .in('team_id', teamIds);
   if (!rows?.length) return [];
 
@@ -38,7 +39,7 @@ export async function getCrew(): Promise<CrewMember[]> {
   const byId = new Map<string, string>();
   for (const r of rows as any[]) {
     if (hidden.has(r.user_id)) continue;
-    if (!byId.has(r.user_id)) byId.set(r.user_id, r.profiles?.username ?? 'kullanıcı');
+    if (!byId.has(r.user_id)) byId.set(r.user_id, displayName(r.profiles, 'kullanıcı'));
   }
 
   const ids = [...byId.keys()];

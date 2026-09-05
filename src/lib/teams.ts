@@ -1,6 +1,7 @@
 // Takım işlemleri — takımlarım / katıl / oluştur / sil / ayrıl / yönet / üyeler.
 
 import { avatarUrlFrom } from '@/lib/profile';
+import { displayName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 
 export type TeamRole = 'captain' | 'member';
@@ -22,6 +23,8 @@ export type MyTeam = {
 export type TeamMember = {
   id: string;
   username: string;
+  /** Gösterilecek ad: gerçek ad varsa o, yoksa kullanıcı adı. */
+  name: string;
   avatarUrl: string | null;
   role: TeamRole;
 };
@@ -55,12 +58,50 @@ export async function deleteTeam(teamId: string): Promise<{ error: string | null
   return { error: error?.message ?? null };
 }
 
-export async function joinTeam(code: string): Promise<{ error: string | null; teamName?: string }> {
+/**
+ * Davet kodu artık doğrudan üye yapmaz: istek açılır, kaptan onaylar.
+ * pending=false yalnızca zaten üyeysen döner.
+ */
+export async function joinTeam(
+  code: string
+): Promise<{ error: string | null; teamName?: string; pending?: boolean }> {
   const { data, error } = await supabase.rpc('join_team_by_code', {
     p_code: code.trim().toUpperCase(),
   });
   if (error) return { error: error.message };
-  return { error: null, teamName: (data as string) ?? code.toUpperCase() };
+  const row = (typeof data === 'string' ? JSON.parse(data) : data) as { name?: string; pending?: boolean } | null;
+  return { error: null, teamName: row?.name ?? code.toUpperCase(), pending: !!row?.pending };
+}
+
+export type JoinRequest = { id: string; username: string; name: string; avatarUrl: string | null; createdAt: string };
+
+/** Kaptan için: takıma katılmak isteyenler. RLS zaten yalnızca kaptana gösterir. */
+export async function getJoinRequests(teamId: string): Promise<JoinRequest[]> {
+  const { data, error } = await supabase
+    .from('team_join_requests')
+    .select('created_at, profiles!team_join_requests_user_id_fkey(id, username, full_name, avatar_path)')
+    .eq('team_id', teamId)
+    .order('created_at', { ascending: true });
+  if (error || !data) return [];
+  return (data as any[])
+    .filter((r) => r.profiles)
+    .map((r) => ({
+      id: r.profiles.id as string,
+      username: r.profiles.username as string,
+      name: displayName(r.profiles),
+      avatarUrl: avatarUrlFrom(r.profiles.avatar_path),
+      createdAt: r.created_at as string,
+    }));
+}
+
+export async function approveJoinRequest(teamId: string, userId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('approve_join_request', { p_team_id: teamId, p_user_id: userId });
+  return { error: error?.message ?? null };
+}
+
+export async function rejectJoinRequest(teamId: string, userId: string): Promise<{ error: string | null }> {
+  const { error } = await supabase.rpc('reject_join_request', { p_team_id: teamId, p_user_id: userId });
+  return { error: error?.message ?? null };
 }
 
 export async function createTeam(
@@ -103,7 +144,7 @@ export async function renameTeam(teamId: string, name: string): Promise<{ error:
 export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from('team_members')
-    .select('role, profiles!team_members_user_id_fkey(id, username, avatar_path)')
+    .select('role, profiles!team_members_user_id_fkey(id, username, full_name, avatar_path)')
     .eq('team_id', teamId)
     .order('joined_at', { ascending: true });
 
@@ -114,6 +155,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
     .map((r) => ({
       id: r.profiles.id as string,
       username: r.profiles.username as string,
+      name: displayName(r.profiles),
       avatarUrl: avatarUrlFrom(r.profiles.avatar_path),
       role: r.role as TeamRole,
     }))

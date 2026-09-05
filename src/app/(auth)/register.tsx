@@ -1,4 +1,4 @@
-// Kayıt ekranı — kullanıcı adı + e-posta + şifre.
+// Kayıt ekranı — ad soyad + kullanıcı adı + e-posta + şifre.
 
 import { Link } from 'expo-router';
 import { useState } from 'react';
@@ -17,6 +17,7 @@ export default function RegisterScreen() {
   useThemeTick();
   const t = useT();
   const { signUp } = useAuth();
+  const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -27,7 +28,7 @@ export default function RegisterScreen() {
   const submit = async () => {
     setError(null);
     setNotice(null);
-    if (!username || !email || !password) {
+    if (!fullName.trim() || !username || !email || !password) {
       setError(t('auth.allFields'));
       return;
     }
@@ -36,7 +37,7 @@ export default function RegisterScreen() {
       return;
     }
     setLoading(true);
-    const { error } = await signUp(email, password, username);
+    const { error } = await signUp(email, password, username, fullName);
     setLoading(false);
     if (error) {
       setError(error);
@@ -63,6 +64,15 @@ export default function RegisterScreen() {
           <Text style={styles.heading}>{t('auth.join')}</Text>
 
           <View style={styles.form}>
+            {/* Takım ekranlarında bu ad görünür — takma ad değil, gerçek ad. */}
+            <Field
+              label={t('auth.fullName')}
+              value={fullName}
+              onChangeText={setFullName}
+              placeholder={t('auth.fullNamePlaceholder')}
+              autoCapitalize="words"
+              autoComplete="name"
+            />
             <Field
               label={t('auth.username')}
               value={username}

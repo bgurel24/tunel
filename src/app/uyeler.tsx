@@ -17,7 +17,11 @@ import { useAuth } from '@/lib/auth';
 import { useT } from '@/lib/i18n';
 import {
   getMyTeams,
+  approveJoinRequest,
+  getJoinRequests,
   getTeamMembers,
+  rejectJoinRequest,
+  type JoinRequest,
   removeMember,
   setMemberRole,
   transferCaptaincy,
@@ -39,15 +43,21 @@ export default function UyelerScreen() {
 
   const [team, setTeam] = useState<MyTeam | null>(null);
   const [members, setMembers] = useState<TeamMember[] | null>(null);
+  const [requests, setRequests] = useState<JoinRequest[]>([]);
 
   const load = useCallback(async () => {
     if (!teamId) {
       setMembers([]);
       return;
     }
-    const [teams, list] = await Promise.all([getMyTeams(), getTeamMembers(teamId)]);
+    const [teams, list, reqs] = await Promise.all([
+      getMyTeams(),
+      getTeamMembers(teamId),
+      getJoinRequests(teamId),
+    ]);
     setTeam(teams.find((x) => x.id === teamId) ?? null);
     setMembers(list);
+    setRequests(reqs);
   }, [teamId]);
 
   useEffect(() => {
@@ -58,31 +68,40 @@ export default function UyelerScreen() {
   const amCaptain = team?.role === 'captain';
   const amOwner = !!team?.isOwner;
 
+  const decide = async (r: JoinRequest, approve: boolean) => {
+    const { error } = approve
+      ? await approveJoinRequest(teamId, r.id)
+      : await rejectJoinRequest(teamId, r.id);
+    if (error) return toast(error, 'error');
+    toast(t(approve ? 'members.approved' : 'members.rejected', { name: r.name }));
+    load();
+  };
+
   const askTransfer = async (member: TeamMember) => {
     const ok = await confirm({
       title: t('members.transferTitle'),
-      message: t('members.transferMessage', { name: member.username }),
+      message: t('members.transferMessage', { name: member.name }),
       confirmLabel: t('members.transfer'),
       icon: 'shield-checkmark-outline',
     });
     if (!ok) return;
     const { error } = await transferCaptaincy(teamId, member.id);
     if (error) return toast(error, 'error');
-    toast(t('members.transferred', { name: member.username }));
+    toast(t('members.transferred', { name: member.name }));
     load();
   };
 
   const askRemove = async (member: TeamMember) => {
     const ok = await confirm({
       title: t('members.removeTitle'),
-      message: t('members.removeMessage', { name: member.username }),
+      message: t('members.removeMessage', { name: member.name }),
       confirmLabel: t('members.remove'),
       destructive: true,
     });
     if (!ok) return;
     const { error } = await removeMember(teamId, member.id);
     if (error) return toast(error, 'error');
-    toast(t('members.removed', { name: member.username }), 'info');
+    toast(t('members.removed', { name: member.name }), 'info');
     load();
   };
 
@@ -100,7 +119,7 @@ export default function UyelerScreen() {
     if (!ok) return;
     const { error } = await setMemberRole(teamId, member.id, role);
     if (error) return toast(error, 'error');
-    toast(t(veriyor ? 'members.promoted' : 'members.demoted', { name: member.username }));
+    toast(t(veriyor ? 'members.promoted' : 'members.demoted', { name: member.name }));
     load();
   };
 
@@ -165,6 +184,28 @@ export default function UyelerScreen() {
           data={members}
           keyExtractor={(m) => m.id}
           contentContainerStyle={styles.list}
+          ListHeaderComponent={
+            amCaptain && requests.length > 0 ? (
+              <View style={styles.requests}>
+                <Text style={styles.requestsTitle}>{t('members.requests', { n: requests.length })}</Text>
+                {requests.map((r) => (
+                  <View key={r.id} style={styles.row}>
+                    <Avatar username={r.username} url={r.avatarUrl} size={38} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.username} numberOfLines={1}>{r.name}</Text>
+                      <Text style={styles.requestSub}>@{r.username}</Text>
+                    </View>
+                    <Touchable style={styles.reqBtn} onPress={() => decide(r, false)} scaleTo={0.9}>
+                      <Ionicons name="close" size={20} color={colors.danger} />
+                    </Touchable>
+                    <Touchable style={[styles.reqBtn, styles.reqApprove]} onPress={() => decide(r, true)} scaleTo={0.9}>
+                      <Ionicons name="checkmark" size={20} color="#fff" />
+                    </Touchable>
+                  </View>
+                ))}
+              </View>
+            ) : null
+          }
           renderItem={({ item }) => {
             const isMe = item.id === myId;
             // Kaptan kendi satırını yönetemez — ayrılmak/devretmek başka üzerinden.
@@ -176,7 +217,7 @@ export default function UyelerScreen() {
                 <Avatar username={item.username} url={item.avatarUrl} size={38} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.username} numberOfLines={1}>
-                    {item.username}
+                    {item.name}
                     {isMe ? ` · ${t('members.you')}` : ''}
                   </Text>
                   <View
@@ -225,6 +266,35 @@ export default function UyelerScreen() {
 }
 
 const styles = makeStyles((colors) => ({
+  requests: {
+    marginBottom: spacing.md,
+    paddingBottom: spacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: colors.line,
+  },
+  requestsTitle: {
+    color: colors.accent,
+    fontSize: fontSize.xs,
+    fontFamily: font.bodySemi,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginBottom: spacing.xs,
+  },
+  requestSub: {
+    color: colors.textFaint,
+    fontSize: fontSize.xs,
+  },
+  reqBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.surface,
+  },
+  reqApprove: {
+    backgroundColor: colors.accent,
+  },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -25,7 +25,8 @@ type AuthContextValue = {
   signUp: (
     email: string,
     password: string,
-    username: string
+    username: string,
+    fullName: string
   ) => Promise<AuthResult>;
   signOut: () => Promise<void>;
 };
@@ -71,12 +72,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         });
         return { error: error?.message ?? null };
       },
-      signUp: async (email, password, username) => {
+      signUp: async (email, password, username, fullName) => {
         if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
         const { error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
-          options: { data: { username: username.trim() } },
+          options: { data: { username: username.trim(), full_name: fullName.trim() } },
         });
         return { error: error?.message ?? null };
       },

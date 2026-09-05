@@ -1,5 +1,6 @@
 // Liderlik veri katmanı — gerçek RPC'ler (team_leaderboard / user_leaderboard).
 
+import { displayName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 
 export type LeaderKind = 'takim' | 'bireysel';
@@ -43,7 +44,7 @@ export async function getLeaderboard(kind: LeaderKind, teamId?: string): Promise
 
   return (data as any[]).map((r, i) => ({
     rank: i + 1,
-    name: r.username,
+    name: displayName(r),
     points: Number(r.points),
     isMe: r.user_id === uid,
   }));
