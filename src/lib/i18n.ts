@@ -22,6 +22,62 @@ const tr = {
   'tab.explore': 'Keşfet',
   'tab.tasks': 'Görevler',
   'tab.profile': 'Profil',
+  'tab.panel': 'Panel',
+
+  // Panel sekmesi
+  'panel.hello': 'Selam {name}',
+  'panel.weeklyGoal': 'Haftalık hedef',
+  'panel.pumpUnit': '/ {n} pump',
+  'panel.todayGym': 'Bugün salonda',
+  'panel.people': '{a} / {b} kişi',
+  'panel.callTeam': 'Takımı çağır',
+  'panel.myTasks': 'Görevlerim',
+  'panel.myRank': 'Sıralaman',
+  'panel.pointsShort': '{n} puan',
+  'panel.toTop': 'zirveye {n} puan',
+  'panel.noTasks': 'Aktif görev yok',
+  'panel.allTasks': 'Tümünü gör',
+
+  // Kişiye özel görevler
+  'tasks.assignedSection': 'Sana atananlar',
+  'tasks.teamSection': 'Takım görevleri',
+  'tasks.due': 'Son gün: {date}',
+  'tasks.overdue': 'Gecikti',
+
+  // Kaptan: aktivite + atama
+  'captain.activity': 'Takım aktivitesi',
+  'captain.tabActivity': 'Aktivite',
+  'captain.tapHint': 'kişiye dokun → analiz',
+  'captain.streakDays': '{n} gün',
+  'captain.absent': '{n} gündür yok',
+  'captain.today': 'Bugün aktif',
+  'captain.never': 'Hiç aktivite yok',
+  'captain.assignLabel': 'Kişiye ata (boş bırak = tüm takım)',
+  'captain.dueLabel': 'Son gün (isteğe bağlı, YYYY-AA-GG)',
+  'captain.assignedTo': '{names} için',
+  'captain.wholeTeam': 'Tüm takım',
+  'captain.rookieTag': 'ROOKIE',
+
+  // Üye analizi (kaptan görünümü)
+  'analysis.subtitle': 'Kaptan görünümü · aktivite analizi',
+  'analysis.absentWarn': '{n} gündür salona gitmedi',
+  'analysis.activeToday': 'Bugün aktifti',
+  'analysis.lastActive': 'Son aktivite: {date}',
+  'analysis.neverActive': 'Henüz hiç aktivite yok',
+  'analysis.currentStreak': 'Güncel seri',
+  'analysis.longestStreak': 'En uzun seri',
+  'analysis.monthCount': 'Bu ay',
+  'analysis.taskStatus': 'Görev durumu',
+  'analysis.last5w': 'Son 5 hafta',
+  'analysis.remind': 'Hatırlatma gönder',
+  'analysis.remindSoon': 'Uygulama içi hatırlatma yakında — şimdilik mesajla dürtmek gerek.',
+  'analysis.assignTask': 'Görev ata',
+
+  // Takım sohbeti
+  'chat.title': 'Takım sohbeti',
+  'chat.subtitle': 'Sadece takım üyeleri görür',
+  'chat.placeholder': 'Mesaj yaz...',
+  'chat.empty': 'Henüz mesaj yok. İlk mesajı sen yaz.',
 
   // Ayarlar — başlık
   'settings.title': 'Ayarlar',
@@ -452,6 +508,62 @@ const en: Record<TranslationKey, string> = {
   'tab.explore': 'Explore',
   'tab.tasks': 'Tasks',
   'tab.profile': 'Profile',
+  'tab.panel': 'Panel',
+
+  // Panel tab
+  'panel.hello': 'Hey {name}',
+  'panel.weeklyGoal': 'Weekly goal',
+  'panel.pumpUnit': '/ {n} pumps',
+  'panel.todayGym': 'At the gym today',
+  'panel.people': '{a} / {b} people',
+  'panel.callTeam': 'Call the team',
+  'panel.myTasks': 'My tasks',
+  'panel.myRank': 'Your rank',
+  'panel.pointsShort': '{n} points',
+  'panel.toTop': '{n} points to the top',
+  'panel.noTasks': 'No active tasks',
+  'panel.allTasks': 'See all',
+
+  // Assigned tasks
+  'tasks.assignedSection': 'Assigned to you',
+  'tasks.teamSection': 'Team tasks',
+  'tasks.due': 'Due: {date}',
+  'tasks.overdue': 'Overdue',
+
+  // Captain: activity + assignment
+  'captain.activity': 'Team activity',
+  'captain.tabActivity': 'Activity',
+  'captain.tapHint': 'tap a member → analysis',
+  'captain.streakDays': '{n} days',
+  'captain.absent': 'absent {n} days',
+  'captain.today': 'Active today',
+  'captain.never': 'No activity yet',
+  'captain.assignLabel': 'Assign to (empty = whole team)',
+  'captain.dueLabel': 'Due date (optional, YYYY-MM-DD)',
+  'captain.assignedTo': 'for {names}',
+  'captain.wholeTeam': 'Whole team',
+  'captain.rookieTag': 'ROOKIE',
+
+  // Member analysis (captain view)
+  'analysis.subtitle': 'Captain view · activity analysis',
+  'analysis.absentWarn': 'No gym for {n} days',
+  'analysis.activeToday': 'Active today',
+  'analysis.lastActive': 'Last active: {date}',
+  'analysis.neverActive': 'No activity yet',
+  'analysis.currentStreak': 'Current streak',
+  'analysis.longestStreak': 'Longest streak',
+  'analysis.monthCount': 'This month',
+  'analysis.taskStatus': 'Task status',
+  'analysis.last5w': 'Last 5 weeks',
+  'analysis.remind': 'Send a reminder',
+  'analysis.remindSoon': 'In-app reminders coming soon — nudge them with a message for now.',
+  'analysis.assignTask': 'Assign task',
+
+  // Team chat
+  'chat.title': 'Team chat',
+  'chat.subtitle': 'Only teammates can see this',
+  'chat.placeholder': 'Write a message...',
+  'chat.empty': 'No messages yet. Say the first word.',
 
   'settings.title': 'Settings',
 

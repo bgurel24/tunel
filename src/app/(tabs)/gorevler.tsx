@@ -96,6 +96,61 @@ export default function GorevlerScreen() {
     setLoading(false);
   };
 
+  const assignedTasks = tasks.filter((x) => x.assignedToMe);
+  const teamTasks = tasks.filter((x) => !x.assignedToMe);
+
+  const fmtDue = (iso: string) => {
+    const [, m, d] = iso.split('-');
+    return `${d}.${m}`;
+  };
+
+  const renderTask = (task: TeamTask, assigned: boolean) => {
+    const overdue =
+      assigned && task.dueDate && task.myStatus !== 'approved'
+        ? new Date(task.dueDate).getTime() < new Date().setHours(0, 0, 0, 0)
+        : false;
+    return (
+      <View key={task.id} style={[styles.taskRow, assigned && styles.taskRowAssigned]}>
+        <View style={styles.taskIcon}>
+          <Ionicons
+            name={assigned ? 'person' : 'barbell-outline'}
+            size={15}
+            color={colors.accent}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.taskTitle}>{task.title}</Text>
+          <Text style={[styles.taskSub, overdue && { color: colors.danger }]}>
+            {t('tasks.points', { n: task.points })}
+            {task.dueDate
+              ? ` · ${overdue ? t('tasks.overdue') : t('tasks.due', { date: fmtDue(task.dueDate) })}`
+              : ''}
+          </Text>
+        </View>
+
+        {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
+          <Pressable
+            style={styles.uploadBtn}
+            onPress={() =>
+              router.push({ pathname: '/gorev-yukle', params: { taskId: task.id, task: task.title, teamId: selectedTeam?.id ?? '' } })
+            }
+          >
+            <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
+            <Text style={styles.uploadText}>
+              {t(task.myStatus === 'rejected' ? 'tasks.retry' : 'tasks.upload')}
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
+            <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
+              {t(STATUS[task.myStatus].label)}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
+  };
+
   const total = tasks.length;
   const approved = tasks.filter((t) => t.myStatus === 'approved').length;
   const progress = total > 0 ? approved / total : 0;
@@ -186,37 +241,24 @@ export default function GorevlerScreen() {
             </Text>
           </View>
         ) : (
-          tasks.map((task, i) => (
-            <View key={task.id} style={styles.taskRow}>
-              <View style={styles.taskIcon}>
-                <Text style={styles.taskOrder}>{i + 1}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskSub}>{t('tasks.points', { n: task.points })}</Text>
-              </View>
-
-              {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
-                <Pressable
-                  style={styles.uploadBtn}
-                  onPress={() =>
-                    router.push({ pathname: '/gorev-yukle', params: { taskId: task.id, task: task.title, teamId: selectedTeam?.id ?? '' } })
-                  }
-                >
-                  <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                  <Text style={styles.uploadText}>
-                    {t(task.myStatus === 'rejected' ? 'tasks.retry' : 'tasks.upload')}
+          <>
+            {assignedTasks.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>{t('tasks.assignedSection')}</Text>
+                {assignedTasks.map((task) => renderTask(task, true))}
+              </>
+            )}
+            {teamTasks.length > 0 && (
+              <>
+                {assignedTasks.length > 0 && (
+                  <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+                    {t('tasks.teamSection')}
                   </Text>
-                </Pressable>
-              ) : (
-                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
-                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
-                    {t(STATUS[task.myStatus].label)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))
+                )}
+                {teamTasks.map((task) => renderTask(task, false))}
+              </>
+            )}
+          </>
         )}
 
         {isCaptain && (
@@ -280,6 +322,23 @@ const styles = makeStyles((colors) => ({
     paddingVertical: spacing.md,
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.lineSoft,
+  },
+  taskRowAssigned: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderTopWidth: 0,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.accentBg,
+  },
+  sectionLabel: {
+    color: colors.textDim,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing.sm,
   },
   taskIcon: {
     width: 34,

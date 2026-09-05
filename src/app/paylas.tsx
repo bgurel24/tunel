@@ -183,7 +183,7 @@ export default function PaylasScreen() {
   // --- Canlı kamera ---
   return (
     <View style={styles.fill}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mirror />
       <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
         <View style={styles.cameraTop}>
           <Pressable onPress={() => router.back()} hitSlop={12} style={styles.roundBtn}>

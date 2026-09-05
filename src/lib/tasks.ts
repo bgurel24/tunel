@@ -10,32 +10,46 @@ export type TeamTask = {
   title: string;
   points: number;
   myStatus: SubmissionStatus;
+  /** Kişiye özel görevse bana mı atanmış; null assigned_to = tüm takım. */
+  assignedToMe: boolean;
+  /** Görev kişiye özel mi (assigned_to dolu mu)? */
+  isAssigned: boolean;
+  /** YYYY-MM-DD son gün; yoksa null. */
+  dueDate: string | null;
 };
 
 export async function getTeamTasks(teamId: string, userId: string): Promise<TeamTask[]> {
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, title, points, submissions(user_id, status)')
+    .select('id, title, points, assigned_to, due_date, submissions(user_id, status)')
     .eq('team_id', teamId)
     .order('created_at', { ascending: true });
 
   if (error || !data) return [];
 
-  return (data as any[]).map((t) => {
-    const mine = (t.submissions ?? []).find((s: any) => s.user_id === userId);
-    return {
-      id: String(t.id),
-      title: t.title,
-      points: t.points ?? 10,
-      myStatus: (mine?.status ?? 'none') as SubmissionStatus,
-    };
-  });
+  return (data as any[])
+    .map((t) => {
+      const mine = (t.submissions ?? []).find((s: any) => s.user_id === userId);
+      const assigned: string[] | null = t.assigned_to ?? null;
+      return {
+        id: String(t.id),
+        title: t.title,
+        points: t.points ?? 10,
+        myStatus: (mine?.status ?? 'none') as SubmissionStatus,
+        isAssigned: !!assigned?.length,
+        assignedToMe: !!assigned?.includes(userId),
+        dueDate: (t.due_date as string | null) ?? null,
+      };
+    })
+    // Başkasına özel atanmış görevler üyenin listesinde görünmez.
+    .filter((t) => !t.isAssigned || t.assignedToMe);
 }
 
 export async function createTask(
   teamId: string,
   title: string,
-  points = 10
+  points = 10,
+  opts?: { assignedTo?: string[]; dueDate?: string | null }
 ): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from('tasks').insert({
@@ -43,6 +57,8 @@ export async function createTask(
     title: title.trim(),
     points,
     created_by: u.user?.id,
+    assigned_to: opts?.assignedTo?.length ? opts.assignedTo : null,
+    due_date: opts?.dueDate ?? null,
   });
   return { error: error?.message ?? null };
 }

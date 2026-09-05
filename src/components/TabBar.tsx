@@ -30,11 +30,11 @@ import {
   useThemeTick,
 } from '@/theme';
 
-type TabName = 'index' | 'kesfet' | 'gorevler' | 'profil';
+type TabName = 'index' | 'panel' | 'gorevler' | 'profil';
 
 const META: Record<TabName, { label: TranslationKey; icon: keyof typeof Ionicons.glyphMap }> = {
   index: { label: 'tab.feed', icon: 'home' },
-  kesfet: { label: 'tab.explore', icon: 'search' },
+  panel: { label: 'tab.panel', icon: 'grid' },
   gorevler: { label: 'tab.tasks', icon: 'barbell' },
   profil: { label: 'tab.profile', icon: 'person' },
 };

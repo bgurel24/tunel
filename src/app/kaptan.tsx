@@ -27,9 +27,11 @@ import { useToast } from '@/components/Toast';
 import {
   decideSubmission,
   getCaptainData,
+  getTeamActivity,
   type CaptainData,
   type CaptainTask,
   type GridStatus,
+  type MemberActivity,
 } from '@/lib/captain';
 import { createTask, deleteTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
@@ -60,12 +62,13 @@ const DECIDED: Record<
   rejected: { color: colors.danger, bg: colors.dangerBg, label: 'status.rejected' },
 };
 
-type Tab = 'gorevler' | 'onaylar' | 'eksikler';
+type Tab = 'gorevler' | 'onaylar' | 'eksikler' | 'aktivite';
 
 const TABS: { key: Tab; label: TranslationKey }[] = [
   { key: 'gorevler', label: 'captain.tabTasks' },
   { key: 'onaylar', label: 'captain.tabProofs' },
   { key: 'eksikler', label: 'captain.tabMissing' },
+  { key: 'aktivite', label: 'captain.tabActivity' },
 ];
 
 export default function KaptanScreen() {
@@ -83,6 +86,9 @@ export default function KaptanScreen() {
   const [tab, setTab] = useState<Tab>('gorevler');
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState('');
+  const [activity, setActivity] = useState<MemberActivity[]>([]);
 
   const focused = useScreenFocused();
   const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
@@ -93,8 +99,9 @@ export default function KaptanScreen() {
   const activeVideoId = visibleId ?? submissions[0]?.id ?? null;
 
   const load = useCallback(async (teamId: string) => {
-    const d = await getCaptainData(teamId);
+    const [d, act] = await Promise.all([getCaptainData(teamId), getTeamActivity(teamId)]);
     setData(d);
+    setActivity(act);
   }, []);
 
   useFocusEffect(
@@ -138,13 +145,25 @@ export default function KaptanScreen() {
   const addTask = async () => {
     if (!selectedId || !newTitle.trim() || adding) return;
     setAdding(true);
-    const { error } = await createTask(selectedId, newTitle);
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(dueDate.trim()) ? dueDate.trim() : null;
+    const { error } = await createTask(selectedId, newTitle, 10, {
+      assignedTo: assignees,
+      dueDate: due,
+    });
     setAdding(false);
     if (error) return toast(error, 'error');
     setNewTitle('');
+    setAssignees([]);
+    setDueDate('');
     toast(t('tasks.added'));
     load(selectedId);
   };
+
+  const toggleAssignee = (id: string) => {
+    setAssignees((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
+
+  const nameOf = (id: string) => data?.members.find((m) => m.id === id)?.name ?? '?';
 
   const removeTask = async (task: CaptainTask) => {
     const ok = await confirm({
@@ -251,6 +270,33 @@ export default function KaptanScreen() {
                   </Pressable>
                 </View>
               )}
+              {tab === 'gorevler' && (
+                <View style={styles.assignBox}>
+                  <Text style={styles.assignLabel}>{t('captain.assignLabel')}</Text>
+                  <View style={styles.assignChips}>
+                    {(data?.members ?? []).map((m) => (
+                      <Pressable
+                        key={m.id}
+                        onPress={() => toggleAssignee(m.id)}
+                        style={[styles.chip, { marginRight: 0 }, assignees.includes(m.id) && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, assignees.includes(m.id) && styles.chipTextActive]}>
+                          {m.name}
+                          {m.isRookie ? ' ·R' : ''}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput
+                    value={dueDate}
+                    onChangeText={setDueDate}
+                    placeholder={t('captain.dueLabel')}
+                    placeholderTextColor={colors.textFaint}
+                    style={styles.dueInput}
+                    autoCapitalize="none"
+                  />
+                </View>
+              )}
             </View>
           }
           renderItem={({ item: s }) => (
@@ -324,7 +370,11 @@ export default function KaptanScreen() {
                           <Text style={styles.taskTitle}>{task.title}</Text>
                           <Text style={styles.taskSub}>
                             {t('tasks.points', { n: task.points })} ·{' '}
-                            {t('captain.taskDone', { n: task.approvedCount })}
+                            {task.assignedTo
+                              ? t('captain.assignedTo', { names: task.assignedTo.map(nameOf).join(', ') })
+                              : t('captain.wholeTeam')}{' '}
+                            · {task.rows.filter((r) => r.status === 'approved').length}/{task.rows.length}
+                            {task.dueDate ? ` · ${t('tasks.due', { date: task.dueDate.slice(5) })}` : ''}
                           </Text>
                         </View>
                         <Pressable onPress={() => removeTask(task)} hitSlop={10}>
@@ -372,6 +422,63 @@ export default function KaptanScreen() {
                     </View>
                   </>
                 )}
+              </View>
+            ) : tab === 'aktivite' ? (
+              <View>
+                <View style={styles.activityHead}>
+                  <Text style={styles.assignLabel}>{t('captain.activity')}</Text>
+                  <Text style={styles.tapHint}>{t('captain.tapHint')}</Text>
+                </View>
+                {activity.map((m) => (
+                  <Pressable
+                    key={m.userId}
+                    style={styles.activityRow}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/uye-analiz',
+                        params: { userId: m.userId, username: m.name, teamId: selectedId ?? '' },
+                      })
+                    }
+                  >
+                    <View style={styles.subAvatar}>
+                      <Text style={styles.subAvatarText}>{m.name.slice(0, 2).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.memberNameBig}>{m.name}</Text>
+                      {m.isRookie && (
+                        <View style={styles.rookiePill}>
+                          <Text style={styles.rookieText}>{t('captain.rookieTag')}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {m.streak > 0 ? (
+                      <View style={styles.streakWrap}>
+                        <Ionicons name="flame" size={14} color={colors.accent} />
+                        <Text style={styles.streakText}>{t('captain.streakDays', { n: m.streak })}</Text>
+                      </View>
+                    ) : m.daysSince === null ? (
+                      <View style={[styles.absentPill, { backgroundColor: colors.surface2 }]}>
+                        <Text style={[styles.absentText, { color: colors.textFaint }]}>{t('captain.never')}</Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.absentPill,
+                          { backgroundColor: m.daysSince >= 7 ? colors.dangerBg : colors.warningBg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.absentText,
+                            { color: m.daysSince >= 7 ? colors.danger : colors.warning },
+                          ]}
+                        >
+                          {m.daysSince === 0 ? t('captain.today') : t('captain.absent', { n: m.daysSince })}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
               </View>
             ) : submissions.length === 0 ? (
               <View style={styles.empty}>
@@ -428,6 +535,36 @@ const styles = makeStyles((colors) => ({
   segment: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm },
   segmentActive: { backgroundColor: colors.surface2 },
   segmentText: { color: colors.textDim, fontSize: fontSize.sm },
+  assignBox: { marginBottom: spacing.lg, gap: spacing.sm },
+  assignLabel: { color: colors.textDim, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
+  assignChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  dueInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: fontSize.sm,
+  },
+  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  tapHint: { color: colors.textFaint, fontSize: fontSize.xs },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.lineSoft,
+  },
+  memberNameBig: { color: colors.text, fontSize: fontSize.md, fontWeight: '500' },
+  rookiePill: { backgroundColor: 'rgba(78,168,255,0.12)', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
+  rookieText: { color: '#4EA8FF', fontSize: 9, fontWeight: '700' },
+  streakWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakText: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
+  absentPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
+  absentText: { fontSize: fontSize.xs, fontWeight: '600' },
   segmentTextActive: { color: colors.text, fontWeight: '600' },
 
   addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },

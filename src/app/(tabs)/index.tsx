@@ -190,6 +190,9 @@ export default function FeedScreen() {
             <Ionicons name="flash" size={16} color={colors.accent} />
             <Text style={styles.headerCallText}>{t('feed.call')}</Text>
           </Touchable>
+          <Pressable onPress={() => router.push('/sohbet')} hitSlop={10} style={{ marginRight: spacing.md }}>
+            <Ionicons name="chatbubble-ellipses-outline" size={22} color={colors.textDim} />
+          </Pressable>
           <Pressable onPress={() => router.push('/bildirimler')} hitSlop={10}>
             <Ionicons name="notifications-outline" size={22} color={colors.textDim} />
           </Pressable>

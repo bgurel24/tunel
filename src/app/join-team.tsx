@@ -7,6 +7,7 @@ import { Pressable, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
 import { Field } from '@/components/Field';
+import { Segmented } from '@/components/Segmented';
 import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
@@ -80,22 +81,18 @@ export default function TeamScreen() {
         <View style={{ width: 26 }} />
       </View>
 
-      <View style={styles.toggle}>
-        {(['katil', 'olustur'] as const).map((m) => (
-          <Pressable
-            key={m}
-            style={[styles.segment, mode === m && styles.segmentActive]}
-            onPress={() => {
-              setMode(m);
-              reset();
-            }}
-          >
-            <Text style={[styles.segmentText, mode === m && styles.segmentTextActive]}>
-              {t(m === 'katil' ? 'team.join' : 'team.create')}
-            </Text>
-          </Pressable>
-        ))}
-      </View>
+      <Segmented
+        options={[
+          { key: 'katil' as const, label: t('team.join') },
+          { key: 'olustur' as const, label: t('team.create') },
+        ]}
+        value={mode}
+        onChange={(m) => {
+          setMode(m);
+          reset();
+        }}
+      />
+      <View style={{ height: 16 }} />
 
       {mode === 'katil' ? (
         <>
