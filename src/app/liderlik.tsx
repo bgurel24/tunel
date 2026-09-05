@@ -155,11 +155,13 @@ export default function LiderlikScreen() {
           <View style={styles.podium}>
             {PODIUM_ORDER.map((i, slot) => {
               const row = top3[i];
-              if (!row) return <View key={slot} style={styles.podiumCol} />;
+              // Anahtarlar ayrı uzayda: boş slot 'empty-N', dolu satır 'rank-N' —
+              // aksi halde 2 kişilik takımda slot=2 ile rank=2 çakışıyordu.
+              if (!row) return <View key={`empty-${slot}`} style={styles.podiumCol} />;
               const first = i === 0;
               return (
                 <Animated.View
-                  key={row.rank}
+                  key={`rank-${row.rank}`}
                   entering={FadeInDown.delay(slot * 90).duration(420)}
                   style={styles.podiumCol}
                 >
