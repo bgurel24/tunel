@@ -1,5 +1,6 @@
 // Görev kanıtı yükleme — hareket videosu. Canlı çekim ZORUNLU DEĞİL:
-// galeriden video seçilebilir ya da istenirse kamerayla çekilebilir.
+// galeriden video seçilebilir ya da uygulama içi kamerayla çekilebilir
+// (sistem kamerası değil — ön kamera aynalamasın, çift dokunma çalışsın).
 
 import { Ionicons } from '@expo/vector-icons';
 import * as ImagePicker from 'expo-image-picker';
@@ -13,6 +14,7 @@ import { GradientButton } from '@/components/GradientButton';
 import { Screen } from '@/components/Screen';
 import { Text } from '@/components/Text';
 import { useToast } from '@/components/Toast';
+import { VideoRecorder, type RecordedVideo } from '@/components/VideoRecorder';
 import { useAuth } from '@/lib/auth';
 import { createVideoPost } from '@/lib/posts';
 import { getPrefs, type ShareTarget } from '@/lib/prefs';
@@ -61,6 +63,7 @@ export default function GorevYukleScreen() {
   );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [recorderOpen, setRecorderOpen] = useState(false);
 
   // Boyut kontrolü SEÇİM anında — yükleme başlayınca dosya zaten belleğe
   // alınmış olur, orada yakalamak geç kalır.
@@ -85,20 +88,18 @@ export default function GorevYukleScreen() {
     if (!res.canceled && res.assets[0]) applyAsset(res.assets[0]);
   };
 
-  const recordVideo = async () => {
-    const perm = await ImagePicker.requestCameraPermissionsAsync();
-    if (!perm.granted) {
-      setError(t('proof.noCamera'));
-      return;
-    }
-    const res = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['videos'],
-      videoMaxDuration: MAX_SECONDS,
-      // Yalnızca iOS'ta etkili; Android'de expo-image-picker sıkıştırma yapmıyor,
-      // orada süre limiti + boyut kontrolü devrede.
-      videoQuality: ImagePicker.UIImagePickerControllerQualityType.Medium,
-    });
-    if (!res.canceled && res.assets[0]) applyAsset(res.assets[0]);
+  const recordVideo = () => setRecorderOpen(true);
+
+  const onRecorded = (v: RecordedVideo) => {
+    setRecorderOpen(false);
+    applyAsset({
+      uri: v.uri,
+      mimeType: v.mimeType,
+      duration: v.durationMs,
+      fileSize: v.fileSize ?? undefined,
+      width: 0,
+      height: 0,
+    } as ImagePicker.ImagePickerAsset);
   };
 
   const submit = async () => {
@@ -246,6 +247,12 @@ export default function GorevYukleScreen() {
           {t('proof.info')}
         </Text>
       </View>
+      <VideoRecorder
+        visible={recorderOpen}
+        maxSeconds={MAX_SECONDS}
+        onClose={() => setRecorderOpen(false)}
+        onRecorded={onRecorded}
+      />
     </Screen>
   );
 }
