@@ -36,7 +36,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Tünel anlık paylaşım için kameraya erişir."
+          "cameraPermission": "Tünel anlık paylaşım için kameraya erişir.",
+          "microphonePermission": "Tünel kanıt videosunda ses için mikrofona erişir.",
+          "recordAudioAndroid": true
         }
       ],
       [
