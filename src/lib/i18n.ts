@@ -433,6 +433,7 @@ const tr = {
   'auth.allFields': 'Tüm alanlar gerekli.',
   'auth.passwordShort': 'Şifre en az 6 karakter olmalı.',
   'auth.created': 'Hesap oluşturuldu. E-posta doğrulaması gerekiyorsa gelen kutunu kontrol et.',
+  'auth.alreadyRegistered': 'Bu e-posta zaten kayıtlı. Giriş yapmayı dene.',
   // Paylaş ekranı
   'share.title': 'Yeni paylaşım',
   'share.permissionTitle': 'Kamera izni gerekli',
@@ -1005,6 +1006,7 @@ const en: Record<TranslationKey, string> = {
   'auth.allFields': 'All fields are required.',
   'auth.passwordShort': 'Password must be at least 6 characters.',
   'auth.created': 'Account created. Check your inbox if email confirmation is on.',
+  'auth.alreadyRegistered': 'This email is already registered. Try signing in.',
   'share.title': 'New post',
   'share.permissionTitle': 'Camera access needed',
   'share.permission': 'Tünel uses the camera for in-the-moment posts. No gallery uploads — only what you shoot now.',

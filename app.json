@@ -8,9 +8,17 @@
     "scheme": "tunel",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "bundleIdentifier": "com.tunel.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.tunel.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#08080B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

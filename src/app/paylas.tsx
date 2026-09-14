@@ -197,7 +197,8 @@ export default function PaylasScreen() {
   // --- Canlı kamera ---
   return (
     <View style={styles.fill}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
+      {/* mirror: ön kamerada çekilen kare önizlemedeki gibi kaydedilsin (ters çevrilmesin). */}
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mirror />
       {/* Cift dokunma: on/arka kamera. Tek dokunma bir sey yapmaz, deklansor asagida. */}
       <Pressable style={StyleSheet.absoluteFill} onPress={onCameraTap} />
       <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']} pointerEvents="box-none">

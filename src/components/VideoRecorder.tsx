@@ -1,5 +1,5 @@
 // Kanıt videosu için uygulama içi kamera. Sistem kamerası (ImagePicker)
-// yerine kendi CameraView'ımız: ön kamera çıktısı aynalanmaz, çift dokunma
+// yerine kendi CameraView'ımız: ön kamera çıktısı önizlemeyle aynı (mirror), çift dokunma
 // ile ön/arka değişir, görünüm paylaşım kamerasıyla aynı.
 
 import { Ionicons } from '@expo/vector-icons';
@@ -119,7 +119,7 @@ export function VideoRecorder({ visible, maxSeconds, onClose, onRecorded }: Prop
           </SafeAreaView>
         ) : (
           <>
-            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mode="video" />
+            <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mode="video" mirror />
             <Pressable style={StyleSheet.absoluteFill} onPress={onCameraTap} />
             <SafeAreaView style={styles.overlay} edges={['top', 'bottom']} pointerEvents="box-none">
               <View style={styles.top} pointerEvents="box-none">

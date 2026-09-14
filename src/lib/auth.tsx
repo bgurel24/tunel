@@ -74,12 +74,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       signUp: async (email, password, username, fullName) => {
         if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: email.trim(),
           password,
           options: { data: { username: username.trim(), full_name: fullName.trim() } },
         });
-        return { error: error?.message ?? null };
+        if (error) return { error: error.message };
+        // Supabase, e-posta zaten kayıtlıysa (enumeration koruması) hata vermez;
+        // identities boş bir sahte kullanıcı döner. Bunu "zaten kayıtlı" olarak göster.
+        if (data.user && (data.user.identities?.length ?? 0) === 0) {
+          return { error: t('auth.alreadyRegistered') };
+        }
+        return { error: null };
       },
       signOut: async () => {
         if (!isSupabaseConfigured) return;
