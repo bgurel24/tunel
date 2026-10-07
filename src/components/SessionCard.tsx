@@ -5,7 +5,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Haptics } from '@/lib/haptics';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 
 import { Text } from '@/components/Text';
 import { useT } from '@/lib/i18n';
@@ -81,7 +81,13 @@ export function SessionCard({
   const goingCount = session.going.length;
 
   return (
-    <View style={[styles.card, shadow.card]}>
+    <LinearGradient
+      colors={[colors.brandFrom, colors.brandTo]}
+      start={gradientStart}
+      end={gradientEnd}
+      style={[styles.ring, shadow.card]}
+    >
+      <View style={styles.card}>
       <View style={styles.head}>
         <View style={styles.bolt}>
           <Ionicons name="flash" size={16} color={colors.accent} />
@@ -140,51 +146,56 @@ export function SessionCard({
 
       {!session.isMine && (
         <View style={styles.actions}>
-          <Touchable
-            style={[styles.btn, myStatus === 'in' && styles.btnIn]}
-            onPress={() => respond('in')}
-            haptic={false}
-            scaleTo={0.95}
-          >
-            <Ionicons
-              name={myStatus === 'in' ? 'checkmark-circle' : 'checkmark-circle-outline'}
-              size={17}
-              color={myStatus === 'in' ? colors.success : colors.textDim}
-            />
-            <Text style={[styles.btnText, myStatus === 'in' && { color: colors.success }]}>
-              {t('session.in')}
-            </Text>
+          <Touchable style={styles.btnWrap} onPress={() => respond('in')} haptic={false} scaleTo={0.95}>
+            {myStatus !== 'in' ? (
+              <View style={styles.btn}>
+                <Ionicons name="checkmark-circle-outline" size={17} color={colors.textDim} />
+                <Text style={styles.btnText}>{t('session.in')}</Text>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={[colors.brandFrom, colors.brandTo]}
+                start={gradientStart}
+                end={gradientEnd}
+                style={styles.btn}
+              >
+                <Ionicons name="checkmark-circle" size={17} color={colors.onBrand} />
+                <Text style={[styles.btnText, styles.btnTextOn]}>{t('session.in')}</Text>
+              </LinearGradient>
+            )}
           </Touchable>
 
-          <Touchable
-            style={[styles.btn, myStatus === 'out' && styles.btnOut]}
-            onPress={() => respond('out')}
-            haptic={false}
-            scaleTo={0.95}
-          >
-            <Ionicons
-              name={myStatus === 'out' ? 'close-circle' : 'close-circle-outline'}
-              size={17}
-              color={myStatus === 'out' ? colors.danger : colors.textDim}
-            />
-            <Text style={[styles.btnText, myStatus === 'out' && { color: colors.danger }]}>
-              {t('session.out')}
-            </Text>
+          <Touchable style={styles.btnWrap} onPress={() => respond('out')} haptic={false} scaleTo={0.95}>
+            <View style={[styles.btn, myStatus === 'out' && styles.btnOut]}>
+              <Ionicons
+                name={myStatus === 'out' ? 'close-circle' : 'close-circle-outline'}
+                size={17}
+                color={myStatus === 'out' ? colors.danger : colors.textDim}
+              />
+              <Text style={[styles.btnText, myStatus === 'out' && { color: colors.danger }]}>
+                {t('session.out')}
+              </Text>
+            </View>
           </Touchable>
         </View>
       )}
-    </View>
+      </View>
+    </LinearGradient>
   );
 }
 
 const styles = makeStyles((colors) => ({
+  // Marka gradyanı kartın çevresinde 1px'lik bir halka olarak duruyor:
+  // çağrı feed'in en önemli şeyi, diğer kartlardan ayrışsın.
+  ring: {
+    borderRadius: radius.lg + 1,
+    padding: 1,
+    marginBottom: spacing.md,
+  },
   card: {
     borderRadius: radius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: colors.line,
     backgroundColor: colors.surface,
     padding: spacing.lg,
-    marginBottom: spacing.md,
   },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   bolt: {
@@ -219,6 +230,7 @@ const styles = makeStyles((colors) => ({
   miniAvatarText: { color: '#fff', fontSize: 10, fontWeight: '700' },
   peopleText: { color: colors.textDim, fontSize: fontSize.xs },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  btnWrap: { flex: 1 },
   btn: {
     flex: 1,
     flexDirection: 'row',
@@ -231,7 +243,7 @@ const styles = makeStyles((colors) => ({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  btnIn: { backgroundColor: colors.successBg, borderColor: colors.success },
   btnOut: { backgroundColor: colors.dangerBg, borderColor: colors.danger },
   btnText: { color: colors.textDim, fontSize: fontSize.sm, fontWeight: '600' },
+  btnTextOn: { color: colors.onBrand, fontWeight: '700' },
 }));
