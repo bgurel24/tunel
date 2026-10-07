@@ -29,6 +29,10 @@ type AuthContextValue = {
     fullName: string
   ) => Promise<AuthResult>;
   signOut: () => Promise<void>;
+  /** Şifremi unuttum 1. adım — e-postaya tek kullanımlık kod gönderir. */
+  sendResetCode: (email: string) => Promise<AuthResult>;
+  /** Şifremi unuttum 2. adım — kodu doğrular, yeni şifreyi kaydeder (oturum açılır). */
+  resetWithCode: (email: string, code: string, nextPassword: string) => Promise<AuthResult>;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -90,6 +94,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       signOut: async () => {
         if (!isSupabaseConfigured) return;
         await supabase.auth.signOut();
+      },
+      sendResetCode: async (email) => {
+        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim());
+        return { error: error?.message ?? null };
+      },
+      resetWithCode: async (email, code, nextPassword) => {
+        if (!isSupabaseConfigured) return { error: NOT_CONFIGURED() };
+        // Kod doğrulanınca Supabase oturum açar; şifreyi hemen ardından güncelliyoruz.
+        const { error: otpError } = await supabase.auth.verifyOtp({
+          email: email.trim(),
+          token: code.trim(),
+          type: 'recovery',
+        });
+        if (otpError) return { error: t('auth.codeInvalid') };
+        const { error } = await supabase.auth.updateUser({ password: nextPassword });
+        return { error: error?.message ?? null };
       },
     }),
     [session, loading]

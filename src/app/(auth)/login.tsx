@@ -1,7 +1,8 @@
 // Giriş ekranı — e-posta + şifre.
 
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Link, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, View } from 'react-native';
 
 import { useT } from '@/lib/i18n';
@@ -13,6 +14,8 @@ import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
 import { fontSize, makeStyles, spacing, useThemeTick } from '@/theme';
 
+const LAST_EMAIL_KEY = 'tunel.lastEmail';
+
 export default function LoginScreen() {
   useThemeTick();
   const t = useT();
@@ -22,6 +25,15 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  // Son giriş yapılan e-posta hazır gelsin — her seferinde yazmak zorunda kalma.
+  useEffect(() => {
+    AsyncStorage.getItem(LAST_EMAIL_KEY)
+      .then((saved) => {
+        if (saved) setEmail((cur) => cur || saved);
+      })
+      .catch(() => {});
+  }, []);
 
   const submit = async () => {
     setError(null);
@@ -36,6 +48,7 @@ export default function LoginScreen() {
       setError(error);
       return;
     }
+    AsyncStorage.setItem(LAST_EMAIL_KEY, email.trim()).catch(() => {});
     router.replace('/');
   };
 
@@ -64,6 +77,7 @@ export default function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
+              textContentType="username"
             />
             <Field
               label={t('auth.password')}
@@ -71,7 +85,16 @@ export default function LoginScreen() {
               onChangeText={setPassword}
               placeholder="••••••••"
               secureTextEntry
+              textContentType="password"
+              autoComplete="current-password"
             />
+
+            <Link
+              href={{ pathname: '/sifremi-unuttum', params: email ? { email } : {} }}
+              style={styles.forgot}
+            >
+              {t('auth.forgot')}
+            </Link>
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -113,6 +136,12 @@ const styles = makeStyles((colors) => ({
   },
   form: {
     gap: spacing.md,
+  },
+  forgot: {
+    color: colors.accent,
+    fontSize: fontSize.sm,
+    fontWeight: '500',
+    alignSelf: 'flex-end',
   },
   error: {
     color: colors.danger,

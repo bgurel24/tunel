@@ -88,13 +88,17 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoComplete="email"
+              textContentType="username"
             />
             <Field
               label={t('auth.password')}
               value={password}
               onChangeText={setPassword}
-              placeholder={t('auth.passwordPlaceholder')}
+              placeholder={t('auth.passwordHint')}
               secureTextEntry
+              textContentType="newPassword"
+              autoComplete="new-password"
+              passwordRules="minlength: 6;"
             />
 
             {error && <Text style={styles.error}>{error}</Text>}
