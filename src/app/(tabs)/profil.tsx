@@ -336,7 +336,7 @@ export default function ProfilScreen() {
                               { color: team.role === 'captain' ? colors.accent : colors.textDim },
                             ]}
                           >
-                            {team.role === 'captain' ? t('profile.captain') : t('profile.member')}
+                            {team.role === 'captain' ? t('profile.captain') : team.role === 'coach' ? t('profile.coach') : t('profile.member')}
                           </Text>
                         </View>
                       </View>

@@ -57,6 +57,24 @@ supabase/faz1_tamamlama.sql  görev bağı + roller + bildirimler göçü
 supabase/functions/push/   Expo push gönderen Edge Function
 ```
 
+## İdman / katılım (yoklama) — Faz 9
+
+- `supabase/faz9_etkinlik_katilim.sql` dosyasını faz8'den sonra SQL Editor'de çalıştır.
+- Takımın sahibi **Üyeler** ekranından bir üyeyi **Koç** yapar. Koç idman açar, düzenler, siler;
+  yoklamayı ve katılım istatistiklerini görür. Kaptanlar idman açamaz, koçların kaptan yetkisi yoktur.
+- Sporcu ana sayfadaki "Sonraki idman" kartından tek dokunuşla cevap verir:
+  Katılacağım / Belli değil / Katılmayacağım. Son bildirim zamanından sonra verilen cevap
+  kaydedilir ama koçta "Geç bildirdi" olarak görünür.
+- Hatırlatma: `send_event_reminders()` başlamasına 3 saat kalan idmanlarda cevap vermeyenlere
+  bildirim düşer. Supabase → Database → Cron'da 15 dakikada bir çalıştır:
+  `select cron.schedule('etkinlik-hatirlatma', '*/15 * * * *', $$select public.send_event_reminders(interval '3 hours')$$);`
+
+## Şifremi unuttum
+
+Uygulama e-postaya **kod** gönderir. Kodun e-postada görünmesi için Supabase →
+Authentication → Email Templates → **Reset Password** şablonuna `{{ .Token }}` ekle, ör.:
+`<p>Tünel şifre sıfırlama kodun: <strong>{{ .Token }}</strong></p>`
+
 ## Bildirimler
 
 - **Uygulama açıkken:** Supabase Realtime + yerel bildirim. Expo Go dahil her yerde çalışır,

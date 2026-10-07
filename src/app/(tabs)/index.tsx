@@ -12,6 +12,7 @@ import { CrewStrip } from '@/components/CrewStrip';
 import { EmptyState } from '@/components/EmptyState';
 import { useVisibleVideo } from '@/components/InlineVideo';
 import { Logo } from '@/components/Logo';
+import { NextEventCard } from '@/components/NextEventCard';
 import { PostCard } from '@/components/PostCard';
 import { Screen } from '@/components/Screen';
 import { Segmented } from '@/components/Segmented';
@@ -22,6 +23,7 @@ import { useTabBarPadding } from '@/components/TabBar';
 import { Text } from '@/components/Text';
 import { Touchable } from '@/components/Touchable';
 import { getCrew, type CrewMember } from '@/lib/crew';
+import { getCoachTeamIds, getNextEvent, type TeamEvent } from '@/lib/events';
 import { useT } from '@/lib/i18n';
 import { useUnreadCount } from '@/lib/notifications';
 import { getFeed } from '@/lib/posts';
@@ -43,6 +45,8 @@ export default function FeedScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [crew, setCrew] = useState<CrewMember[]>([]);
   const [sessions, setSessions] = useState<GymSession[]>([]);
+  const [nextEvent, setNextEvent] = useState<TeamEvent | null>(null);
+  const [coachTeams, setCoachTeams] = useState<string[]>([]);
   const [starter, setStarter] = useState<StarterState | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -59,13 +63,22 @@ export default function FeedScreen() {
     useCallback(() => {
       let active = true;
       setFocused(true);
-      Promise.all([getFeed(feed), getCrew(), getActiveSessions(), getStarterState()]).then(
-        ([data, members, calls, setup]) => {
+      Promise.all([
+        getFeed(feed),
+        getCrew(),
+        getActiveSessions(),
+        getStarterState(),
+        getNextEvent(),
+        getCoachTeamIds(),
+      ]).then(
+        ([data, members, calls, setup, next, coach]) => {
           if (!active) return;
           setPosts(data);
           setCrew(members);
           setSessions(calls);
           setStarter(setup);
+          setNextEvent(next);
+          setCoachTeams(coach);
           setLoading(false);
         }
       );
@@ -78,16 +91,20 @@ export default function FeedScreen() {
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
-    const [data, members, calls, setup] = await Promise.all([
+    const [data, members, calls, setup, next, coach] = await Promise.all([
       getFeed(feed),
       getCrew(),
       getActiveSessions(),
       getStarterState(),
+      getNextEvent(),
+      getCoachTeamIds(),
     ]);
     setPosts(data);
     setCrew(members);
     setSessions(calls);
     setStarter(setup);
+    setNextEvent(next);
+    setCoachTeams(coach);
     setRefreshing(false);
   }, [feed]);
 
@@ -105,6 +122,25 @@ export default function FeedScreen() {
       <CrewStrip crew={crew} />
 
       {starter && !starter.done && <StarterChecklist state={starter} />}
+
+      {nextEvent ? (
+        <NextEventCard key={`${nextEvent.id}-${nextEvent.myStatus}`} event={nextEvent} />
+      ) : coachTeams.length > 0 ? (
+        <Touchable
+          style={styles.callRow}
+          onPress={() => router.push({ pathname: '/idman-duzenle', params: { teamId: coachTeams[0] } })}
+          scaleTo={0.98}
+        >
+          <View style={styles.callIcon}>
+            <Ionicons name="american-football" size={17} color={colors.accent} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.callTitle}>{t('events.planTitle')}</Text>
+            <Text style={styles.callSub}>{t('events.planSub')}</Text>
+          </View>
+          <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
+        </Touchable>
+      ) : null}
 
       {sessions.map((s) => (
         <SessionCard key={s.id} session={s} onChanged={reloadSessions} />

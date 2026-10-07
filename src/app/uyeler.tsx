@@ -106,6 +106,7 @@ export default function UyelerScreen() {
   };
 
   const askSetRole = async (member: TeamMember, role: TeamRole) => {
+    if (role === 'coach' || member.role === 'coach') return askCoach(member, role === 'coach');
     const veriyor = role === 'captain';
     const ok = await confirm({
       title: t(veriyor ? 'members.promoteTitle' : 'members.demoteTitle'),
@@ -123,26 +124,52 @@ export default function UyelerScreen() {
     load();
   };
 
+  // Koç: idman açar, yoklamayı görür. Kaptan yetkisi yok; sahip atar/geri alır.
+  const askCoach = async (member: TeamMember, make: boolean) => {
+    const ok = await confirm({
+      title: t(make ? 'members.coachTitle' : 'members.uncoachTitle'),
+      message: t(make ? 'members.coachMessage' : 'members.uncoachMessage', { name: member.name }),
+      confirmLabel: t(make ? 'members.makeCoach' : 'members.uncoach'),
+      icon: 'clipboard-outline',
+      destructive: !make,
+    });
+    if (!ok) return;
+    const { error } = await setMemberRole(teamId, member.id, make ? 'coach' : 'member');
+    if (error) return toast(error, 'error');
+    toast(t(make ? 'members.coached' : 'members.uncoached', { name: member.name }));
+    load();
+  };
+
   // Yetki dağıtmak ve sahipliği devretmek yalnızca takımın sahibinde.
   // Yardımcı kaptanlar üye çıkarabilir ama birbirinin yetkisiyle oynayamaz.
   const openMemberMenu = async (member: TeamMember) => {
     const yardimci = member.role === 'captain';
+    const koc = member.role === 'coach';
     const choice = await menu({
       title: member.username,
       options: [
         ...(amOwner
           ? [
-              yardimci
+              koc
                 ? {
-                    key: 'demote',
-                    label: t('members.demote'),
-                    icon: 'shield-outline' as const,
+                    key: 'uncoach',
+                    label: t('members.uncoach'),
+                    icon: 'clipboard-outline' as const,
                   }
-                : {
-                    key: 'promote',
-                    label: t('members.promote'),
-                    icon: 'shield-checkmark-outline' as const,
-                  },
+                : yardimci
+                  ? {
+                      key: 'demote',
+                      label: t('members.demote'),
+                      icon: 'shield-outline' as const,
+                    }
+                  : {
+                      key: 'promote',
+                      label: t('members.promote'),
+                      icon: 'shield-checkmark-outline' as const,
+                    },
+              ...(!koc && !yardimci
+                ? [{ key: 'coach', label: t('members.makeCoach'), icon: 'clipboard-outline' as const }]
+                : []),
               {
                 key: 'transfer',
                 label: t('members.transfer'),
@@ -155,6 +182,8 @@ export default function UyelerScreen() {
     });
     if (choice === 'promote') askSetRole(member, 'captain');
     if (choice === 'demote') askSetRole(member, 'member');
+    if (choice === 'coach') askCoach(member, true);
+    if (choice === 'uncoach') askCoach(member, false);
     if (choice === 'transfer') askTransfer(member);
     if (choice === 'remove') askRemove(member);
   };
@@ -223,16 +252,33 @@ export default function UyelerScreen() {
                   <View
                     style={[
                       styles.roleBadge,
-                      item.role === 'captain' ? styles.roleCaptain : styles.roleMember,
+                      item.role === 'captain'
+                        ? styles.roleCaptain
+                        : item.role === 'coach'
+                          ? styles.roleCoach
+                          : styles.roleMember,
                     ]}
                   >
                     <Text
                       style={[
                         styles.roleText,
-                        { color: item.role === 'captain' ? colors.accent : colors.textDim },
+                        {
+                          color:
+                            item.role === 'captain'
+                              ? colors.accent
+                              : item.role === 'coach'
+                                ? colors.success
+                                : colors.textDim,
+                        },
                       ]}
                     >
-                      {t(item.role === 'captain' ? 'profile.captain' : 'profile.member')}
+                      {t(
+                        item.role === 'captain'
+                          ? 'profile.captain'
+                          : item.role === 'coach'
+                            ? 'profile.coach'
+                            : 'profile.member'
+                      )}
                     </Text>
                   </View>
                 </View>
@@ -334,6 +380,7 @@ const styles = makeStyles((colors) => ({
   },
   roleCaptain: { backgroundColor: colors.accentBg },
   roleMember: { backgroundColor: colors.surface2 },
+  roleCoach: { backgroundColor: colors.successBg },
   roleText: { fontSize: fontSize.xs, fontWeight: '500' },
   more: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
   info: {

@@ -4,7 +4,8 @@ import { avatarUrlFrom } from '@/lib/profile';
 import { displayName } from '@/lib/names';
 import { supabase } from '@/lib/supabase';
 
-export type TeamRole = 'captain' | 'member';
+/** coach → idman açar, yoklama ve katılım istatistiği görür; kaptan yetkisi yok. */
+export type TeamRole = 'captain' | 'member' | 'coach';
 
 export type MyTeam = {
   id: string;
@@ -140,7 +141,9 @@ export async function renameTeam(teamId: string, name: string): Promise<{ error:
   return { error: error?.message ?? null };
 }
 
-/** Takımın üyeleri — kaptan önce, sonra katılma sırasına göre. */
+const ROLE_ORDER: Record<TeamRole, number> = { coach: 0, captain: 1, member: 2 };
+
+/** Takımın üyeleri — koçlar, kaptanlar, sonra katılma sırasına göre üyeler. */
 export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
   const { data, error } = await supabase
     .from('team_members')
@@ -159,7 +162,7 @@ export async function getTeamMembers(teamId: string): Promise<TeamMember[]> {
       avatarUrl: avatarUrlFrom(r.profiles.avatar_path),
       role: r.role as TeamRole,
     }))
-    .sort((a, b) => (a.role === b.role ? 0 : a.role === 'captain' ? -1 : 1));
+    .sort((a, b) => ROLE_ORDER[a.role] - ROLE_ORDER[b.role]);
 }
 
 /**
