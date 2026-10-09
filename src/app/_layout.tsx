@@ -1,6 +1,6 @@
 // Kök layout — marka fontları, tema, tercihler, güvenli alan, auth, toast ve Stack.
 
-import { DarkTheme, ThemeProvider } from '@react-navigation/native';
+import { DarkTheme, ThemeProvider } from 'expo-router';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
@@ -81,6 +81,10 @@ export default function RootLayout() {
                 <Stack.Screen name="ayarlar" />
                 <Stack.Screen name="engellenenler" />
                 <Stack.Screen name="yasal" />
+                <Stack.Screen name="idmanlar" />
+                <Stack.Screen name="idman" />
+                <Stack.Screen name="katilim-istatistik" />
+                <Stack.Screen name="idman-duzenle" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="cagri" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="paylas" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
                 <Stack.Screen name="yorumlar" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />

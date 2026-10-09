@@ -8,9 +8,17 @@
     "scheme": "tunel",
     "userInterfaceStyle": "dark",
     "ios": {
-      "icon": "./assets/images/icon.png"
+      "bundleIdentifier": "com.tunel.app",
+      "buildNumber": "1",
+      "supportsTablet": false,
+      "icon": "./assets/images/icon.png",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
+      "package": "com.tunel.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#08080B",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -20,7 +28,7 @@
       "predictiveBackGestureEnabled": false
     },
     "web": {
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
@@ -36,7 +44,9 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Tünel anlık paylaşım için kameraya erişir."
+          "cameraPermission": "Tünel anlık paylaşım için kameraya erişir.",
+          "microphonePermission": "Tünel kanıt videosunda ses için mikrofona erişir.",
+          "recordAudioAndroid": true
         }
       ],
       [
@@ -46,7 +56,10 @@
           "microphonePermission": "Video çekiminde ses için mikrofona erişir."
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-font",
+      "expo-image",
+      "expo-status-bar"
     ],
     "experiments": {
       "typedRoutes": true,

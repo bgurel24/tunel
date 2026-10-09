@@ -235,7 +235,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
           </Animated.View>
 
           <Animated.View
-            entering={SlideInDown.springify().damping(20).stiffness(180)}
+            entering={SlideInDown.duration(220).easing(Easing.out(Easing.cubic))}
             exiting={SlideOutDown.duration(180)}
             style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }, shadow.raised]}
           >
@@ -288,7 +288,7 @@ export function FeedbackProvider({ children }: { children: React.ReactNode }) {
           </Animated.View>
 
           <Animated.View
-            entering={SlideInDown.springify().damping(20).stiffness(180)}
+            entering={SlideInDown.duration(220).easing(Easing.out(Easing.cubic))}
             exiting={SlideOutDown.duration(180)}
             style={[styles.sheet, { paddingBottom: insets.bottom + spacing.lg }, shadow.raised]}
           >
@@ -378,7 +378,7 @@ function PromptSheet({
       </Animated.View>
 
       <Animated.View
-        entering={SlideInDown.springify().damping(20).stiffness(180)}
+        entering={SlideInDown.duration(220).easing(Easing.out(Easing.cubic))}
         exiting={SlideOutDown.duration(180)}
         style={[
           styles.sheet,

@@ -26,9 +26,10 @@ export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <TabBar {...props} />} screenOptions={{ headerShown: false }}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="kesfet" />
+      <Tabs.Screen name="panel" />
       <Tabs.Screen name="gorevler" />
       <Tabs.Screen name="profil" />
+      <Tabs.Screen name="kesfet" />
     </Tabs>
   );
 }

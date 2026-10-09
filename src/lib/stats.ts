@@ -105,3 +105,27 @@ export async function getUserStats(uid: string): Promise<MyStats> {
   const activeDays = [...new Set(dates.map((d) => d.slice(0, 10)))];
   return { ...base, badges: buildBadges(base), activeDays };
 }
+
+// ========== Panel: takımın haftalık pump sayısı ==========
+// Hafta pazartesi başlar; hedef üye sayısı × 4 (en az 10).
+
+export async function getTeamWeek(teamId: string): Promise<{ pumps: number; goal: number }> {
+  const monday = new Date();
+  monday.setHours(0, 0, 0, 0);
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+
+  const [postsRes, membersRes] = await Promise.all([
+    supabase
+      .from('posts')
+      .select('id', { count: 'exact', head: true })
+      .eq('team_id', teamId)
+      .gte('created_at', monday.toISOString()),
+    supabase
+      .from('team_members')
+      .select('user_id', { count: 'exact', head: true })
+      .eq('team_id', teamId),
+  ]);
+
+  const members = membersRes.count ?? 0;
+  return { pumps: postsRes.count ?? 0, goal: Math.max(10, members * 4) };
+}

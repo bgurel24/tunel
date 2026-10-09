@@ -16,7 +16,6 @@ import { Text } from '@/components/Text';
 import { useAuth } from '@/lib/auth';
 import { getTeamTasks, type SubmissionStatus, type TeamTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
-import { dueLabel } from '@/lib/time';
 import { colors, fontSize, makeStyles, radius, spacing, useThemeTick } from '@/theme';
 
 const STATUS: Record<
@@ -95,6 +94,62 @@ export default function GorevlerScreen() {
     setLoading(true);
     await loadTasks(id);
     setLoading(false);
+  };
+
+  const assignedTasks = tasks.filter((x) => x.assignedToMe);
+  const teamTasks = tasks.filter((x) => !x.assignedToMe);
+
+  // due_at ISO damgasi — gun.ay olarak goster.
+  const fmtDue = (iso: string) => {
+    const d = new Date(iso);
+    return `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
+  };
+
+  const renderTask = (task: TeamTask, assigned: boolean) => {
+    const overdue =
+      assigned && task.dueAt && task.myStatus !== 'approved'
+        ? new Date(task.dueAt).getTime() < new Date().setHours(0, 0, 0, 0)
+        : false;
+    return (
+      <View key={task.id} style={[styles.taskRow, assigned && styles.taskRowAssigned]}>
+        <View style={styles.taskIcon}>
+          <Ionicons
+            name={assigned ? 'person' : 'barbell-outline'}
+            size={15}
+            color={colors.accent}
+          />
+        </View>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.taskTitle}>{task.title}</Text>
+          <Text style={[styles.taskSub, overdue && { color: colors.danger }]}>
+            {t('tasks.points', { n: task.points })}
+            {task.dueAt
+              ? ` · ${overdue ? t('tasks.overdue') : t('tasks.due', { date: fmtDue(task.dueAt) })}`
+              : ''}
+          </Text>
+        </View>
+
+        {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
+          <Pressable
+            style={styles.uploadBtn}
+            onPress={() =>
+              router.push({ pathname: '/gorev-yukle', params: { taskId: task.id, task: task.title, teamId: selectedTeam?.id ?? '' } })
+            }
+          >
+            <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
+            <Text style={styles.uploadText}>
+              {t(task.myStatus === 'rejected' ? 'tasks.retry' : 'tasks.upload')}
+            </Text>
+          </Pressable>
+        ) : (
+          <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
+            <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
+              {t(STATUS[task.myStatus].label)}
+            </Text>
+          </View>
+        )}
+      </View>
+    );
   };
 
   const total = tasks.length;
@@ -187,57 +242,24 @@ export default function GorevlerScreen() {
             </Text>
           </View>
         ) : (
-          tasks.map((task, i) => (
-            <View key={task.id} style={styles.taskRow}>
-              <View style={styles.taskIcon}>
-                <Text style={styles.taskOrder}>{i + 1}</Text>
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.taskTitle}>{task.title}</Text>
-                <Text style={styles.taskSub}>
-                  {t('tasks.points', { n: task.points })}
-                  {task.dueAt ? ' · ' : ''}
-                  {task.dueAt ? (
-                    <Text style={task.overdue ? styles.dueLate : styles.dueSoon}>
-                      {dueLabel(task.dueAt)}
-                    </Text>
-                  ) : null}
-                  {task.submittedLate ? ` · ${t('tasks.lateUpload')}` : ''}
-                </Text>
-                {task.rejectNote ? (
-                  <Text style={styles.rejectNote}>
-                    {t('tasks.rejectReason')}: {task.rejectNote}
+          <>
+            {assignedTasks.length > 0 && (
+              <>
+                <Text style={styles.sectionLabel}>{t('tasks.assignedSection')}</Text>
+                {assignedTasks.map((task) => renderTask(task, true))}
+              </>
+            )}
+            {teamTasks.length > 0 && (
+              <>
+                {assignedTasks.length > 0 && (
+                  <Text style={[styles.sectionLabel, { marginTop: spacing.lg }]}>
+                    {t('tasks.teamSection')}
                   </Text>
-                ) : null}
-              </View>
-
-              {task.myStatus === 'none' || task.myStatus === 'rejected' ? (
-                <Pressable
-                  style={[styles.uploadBtn, task.overdue && styles.uploadBtnLate]}
-                  onPress={() =>
-                    router.push({ pathname: '/gorev-yukle', params: { taskId: task.id, task: task.title, teamId: selectedTeam?.id ?? '' } })
-                  }
-                >
-                  <Ionicons name="cloud-upload-outline" size={14} color="#fff" />
-                  <Text style={styles.uploadText}>
-                    {t(
-                      task.overdue
-                        ? 'tasks.uploadLate'
-                        : task.myStatus === 'rejected'
-                          ? 'tasks.retry'
-                          : 'tasks.upload'
-                    )}
-                  </Text>
-                </Pressable>
-              ) : (
-                <View style={[styles.statusPill, { backgroundColor: STATUS[task.myStatus].bg }]}>
-                  <Text style={[styles.statusText, { color: STATUS[task.myStatus].color }]}>
-                    {t(STATUS[task.myStatus].label)}
-                  </Text>
-                </View>
-              )}
-            </View>
-          ))
+                )}
+                {teamTasks.map((task) => renderTask(task, false))}
+              </>
+            )}
+          </>
         )}
 
         {isCaptain && (
@@ -251,11 +273,6 @@ export default function GorevlerScreen() {
         <View style={styles.info}>
           <Ionicons name="information-circle-outline" size={16} color={colors.accent} />
           <Text style={styles.infoText}>{t('tasks.info')}</Text>
-        </View>
-
-        <View style={styles.info}>
-          <Ionicons name="time-outline" size={16} color={colors.accent} />
-          <Text style={styles.infoText}>{t('tasks.weekInfo')}</Text>
         </View>
       </ScrollView>
     </Screen>
@@ -307,6 +324,23 @@ const styles = makeStyles((colors) => ({
     borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: colors.lineSoft,
   },
+  taskRowAssigned: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    borderTopWidth: 0,
+    paddingHorizontal: spacing.md,
+    marginBottom: spacing.sm,
+    borderWidth: 1,
+    borderColor: colors.accentBg,
+  },
+  sectionLabel: {
+    color: colors.textDim,
+    fontSize: fontSize.xs,
+    fontWeight: '600',
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+    marginBottom: spacing.sm,
+  },
   taskIcon: {
     width: 34,
     height: 34,
@@ -318,9 +352,6 @@ const styles = makeStyles((colors) => ({
   taskOrder: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
   taskTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
   taskSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
-  dueSoon: { color: colors.textDim },
-  dueLate: { color: colors.danger },
-  rejectNote: { color: colors.danger, fontSize: fontSize.xs, marginTop: 4, lineHeight: 16 },
   uploadBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -330,7 +361,6 @@ const styles = makeStyles((colors) => ({
     paddingVertical: 7,
     borderRadius: radius.pill,
   },
-  uploadBtnLate: { backgroundColor: colors.warning },
   uploadText: { color: '#fff', fontSize: fontSize.xs, fontWeight: '500' },
   statusPill: { paddingHorizontal: 10, paddingVertical: 5, borderRadius: radius.pill },
   statusText: { fontSize: fontSize.xs, fontWeight: '500' },

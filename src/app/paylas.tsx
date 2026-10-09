@@ -44,6 +44,20 @@ export default function PaylasScreen() {
   const [sharing, setSharing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const flip = () => setFacing((f) => (f === 'back' ? 'front' : 'back'));
+
+  // Cift dokunma tespiti: 300 ms icinde ikinci dokunus gelirse kamerayi cevir.
+  const lastTap = useRef(0);
+  const onCameraTap = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 300) {
+      lastTap.current = 0;
+      flip();
+    } else {
+      lastTap.current = now;
+    }
+  };
+
   const capture = async () => {
     const shot = await cameraRef.current?.takePictureAsync({ quality: 0.6 });
     if (shot?.uri) setPhotoUri(shot.uri);
@@ -183,9 +197,12 @@ export default function PaylasScreen() {
   // --- Canlı kamera ---
   return (
     <View style={styles.fill}>
-      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} />
-      <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']}>
-        <View style={styles.cameraTop}>
+      {/* mirror: ön kamerada çekilen kare önizlemedeki gibi kaydedilsin (ters çevrilmesin). */}
+      <CameraView ref={cameraRef} style={StyleSheet.absoluteFill} facing={facing} mirror />
+      {/* Cift dokunma: on/arka kamera. Tek dokunma bir sey yapmaz, deklansor asagida. */}
+      <Pressable style={StyleSheet.absoluteFill} onPress={onCameraTap} />
+      <SafeAreaView style={styles.cameraOverlay} edges={['top', 'bottom']} pointerEvents="box-none">
+        <View style={styles.cameraTop} pointerEvents="box-none">
           <Pressable onPress={() => router.back()} hitSlop={12} style={styles.roundBtn}>
             <Ionicons name="close" size={24} color="#fff" />
           </Pressable>
@@ -196,13 +213,13 @@ export default function PaylasScreen() {
           <View style={{ width: 40 }} />
         </View>
 
-        <View style={styles.cameraBottom}>
+        <View style={styles.cameraBottom} pointerEvents="box-none">
           <View style={{ width: 48 }} />
           <Pressable onPress={capture} style={styles.shutterOuter}>
             <View style={styles.shutterInner} />
           </Pressable>
           <Pressable
-            onPress={() => setFacing((f) => (f === 'back' ? 'front' : 'back'))}
+            onPress={flip}
             style={styles.roundBtn}
           >
             <Ionicons name="camera-reverse-outline" size={26} color="#fff" />

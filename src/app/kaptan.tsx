@@ -1,16 +1,12 @@
-// Kaptan paneli — görev yönetimi (ekle/sil/süre uzat), bekleyen kanıtlar (feed
-// gibi kendiliğinden oynayan video + onayla/reddet), üye/görev eksik ızgarası ve
-// haftalık rapor.
+// Kaptan paneli — görev yönetimi (ekle/sil), kanıtlar (feed gibi kendiliğinden
+// oynayan video + onayla/reddet) ve üye/görev eksik ızgarası.
 //
 // Görev ekleme burada; Görevler sekmesi üyenin "yapılacaklar" ekranı olarak kaldı.
-//
-// Kanıtlar sekmesi yalnızca ONAY BEKLEYENLERİ gösterir. Karar verilen kanıt
-// listeden düşer ama kaybolmaz: üyenin profilinde durur, kaptan oradan izler.
 
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -22,7 +18,6 @@ import {
 } from 'react-native';
 
 import { useT, type TranslationKey } from '@/lib/i18n';
-import { Avatar } from '@/components/Avatar';
 import { EmptyState } from '@/components/EmptyState';
 import { InlineVideo, useScreenFocused, useVisibleVideo } from '@/components/InlineVideo';
 import { Screen } from '@/components/Screen';
@@ -32,14 +27,14 @@ import { useToast } from '@/components/Toast';
 import {
   decideSubmission,
   getCaptainData,
+  getTeamActivity,
   type CaptainData,
   type CaptainTask,
   type GridStatus,
+  type MemberActivity,
 } from '@/lib/captain';
-import { getWeeklyReport, type MemberReport, type WeeklyReport } from '@/lib/report';
-import { createTask, deleteTask, extendTask } from '@/lib/tasks';
+import { createTask, defaultDueAt, deleteTask } from '@/lib/tasks';
 import { getMyTeams, type MyTeam } from '@/lib/teams';
-import { dueLabel } from '@/lib/time';
 import {
   colors,
   fontSize,
@@ -67,22 +62,13 @@ const DECIDED: Record<
   rejected: { color: colors.danger, bg: colors.dangerBg, label: 'status.rejected' },
 };
 
-const REPORT_STATUS: Record<
-  MemberReport['status'],
-  { color: string; bg: string; label: TranslationKey }
-> = {
-  full: { color: colors.success, bg: colors.successBg, label: 'report.full' },
-  partial: { color: colors.warning, bg: colors.warningBg, label: 'report.partial' },
-  none: { color: colors.danger, bg: colors.dangerBg, label: 'report.none' },
-};
-
-type Tab = 'gorevler' | 'onaylar' | 'eksikler' | 'rapor';
+type Tab = 'gorevler' | 'onaylar' | 'eksikler' | 'aktivite';
 
 const TABS: { key: Tab; label: TranslationKey }[] = [
   { key: 'gorevler', label: 'captain.tabTasks' },
   { key: 'onaylar', label: 'captain.tabProofs' },
   { key: 'eksikler', label: 'captain.tabMissing' },
-  { key: 'rapor', label: 'captain.tabReport' },
+  { key: 'aktivite', label: 'captain.tabActivity' },
 ];
 
 export default function KaptanScreen() {
@@ -90,7 +76,7 @@ export default function KaptanScreen() {
   const t = useT();
   const router = useRouter();
   const params = useLocalSearchParams<{ teamId?: string }>();
-  const { toast, celebrate, confirm, prompt } = useToast();
+  const { toast, celebrate, confirm } = useToast();
 
   const [teams, setTeams] = useState<MyTeam[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -100,42 +86,23 @@ export default function KaptanScreen() {
   const [tab, setTab] = useState<Tab>('gorevler');
   const [newTitle, setNewTitle] = useState('');
   const [adding, setAdding] = useState(false);
-
-  // Haftalık rapor: 0 bu hafta, -1 geçen hafta…
-  const [weekOffset, setWeekOffset] = useState(0);
-  const [report, setReport] = useState<WeeklyReport | null>(null);
-  const [reportLoading, setReportLoading] = useState(false);
+  const [assignees, setAssignees] = useState<string[]>([]);
+  const [dueDate, setDueDate] = useState('');
+  const [activity, setActivity] = useState<MemberActivity[]>([]);
 
   const focused = useScreenFocused();
   const { visibleId, viewabilityConfigCallbackPairs } = useVisibleVideo();
 
-  // Onay ekranında yalnızca bekleyenler; karar verilenler üyenin profilinde.
-  const pending = data?.submissions.filter((s) => s.status === 'pending') ?? [];
-  const pendingCount = pending.length;
-  const submissions = tab === 'onaylar' ? pending : [];
+  const pendingCount = data?.submissions.filter((s) => s.status === 'pending').length ?? 0;
+  const submissions = tab === 'onaylar' ? data?.submissions ?? [] : [];
   // Görünürlük geri bildirimi gelene kadar ilk kanıt oynasın.
   const activeVideoId = visibleId ?? submissions[0]?.id ?? null;
 
   const load = useCallback(async (teamId: string) => {
-    const d = await getCaptainData(teamId);
+    const [d, act] = await Promise.all([getCaptainData(teamId), getTeamActivity(teamId)]);
     setData(d);
+    setActivity(act);
   }, []);
-
-  // Rapor sekmesi açılınca (ve hafta değişince) ayrı çekilir — diğer
-  // sekmelerde boşuna sorgu atmayalım.
-  useEffect(() => {
-    if (tab !== 'rapor' || !selectedId) return;
-    let active = true;
-    setReportLoading(true);
-    getWeeklyReport(selectedId, weekOffset).then((r) => {
-      if (!active) return;
-      setReport(r);
-      setReportLoading(false);
-    });
-    return () => {
-      active = false;
-    };
-  }, [tab, selectedId, weekOffset]);
 
   useFocusEffect(
     useCallback(() => {
@@ -166,22 +133,8 @@ export default function KaptanScreen() {
     setLoading(false);
   };
 
-  // Reddederken sebep sorulur — üye neyi düzelteceğini bilsin. Boş bırakmak serbest.
   const decide = async (id: string, approve: boolean) => {
-    let note: string | null = null;
-    if (!approve) {
-      note = await prompt({
-        title: t('captain.rejectTitle'),
-        message: t('captain.rejectMessage'),
-        placeholder: t('captain.rejectPlaceholder'),
-        confirmLabel: t('captain.reject'),
-        icon: 'close-circle-outline',
-        autoCapitalize: 'sentences',
-      });
-      if (note === null) return;
-    }
-
-    const { error } = await decideSubmission(id, approve, note);
+    const { error } = await decideSubmission(id, approve);
     if (error) return toast(error, 'error');
     if (approve) celebrate(t('captain.approved'));
     else toast(t('captain.rejected'), 'info');
@@ -192,13 +145,26 @@ export default function KaptanScreen() {
   const addTask = async () => {
     if (!selectedId || !newTitle.trim() || adding) return;
     setAdding(true);
-    const { error } = await createTask(selectedId, newTitle);
+    // Kutuya GG yazilmazsa varsayilan bir hafta (Burak'in haftalik gorev kurali).
+    const typed = dueDate.trim();
+    const due = /^\d{4}-\d{2}-\d{2}$/.test(typed)
+      ? new Date(`${typed}T23:59:59`).toISOString()
+      : defaultDueAt();
+    const { error } = await createTask(selectedId, newTitle, 10, due, assignees);
     setAdding(false);
     if (error) return toast(error, 'error');
     setNewTitle('');
+    setAssignees([]);
+    setDueDate('');
     toast(t('tasks.added'));
     load(selectedId);
   };
+
+  const toggleAssignee = (id: string) => {
+    setAssignees((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+  };
+
+  const nameOf = (id: string) => data?.members.find((m) => m.id === id)?.name ?? '?';
 
   const removeTask = async (task: CaptainTask) => {
     const ok = await confirm({
@@ -214,26 +180,6 @@ export default function KaptanScreen() {
     if (selectedId) load(selectedId);
   };
 
-  // Süresi dolan göreve ikinci bir hafta. Tarih bugünden sayılır — geçmiş bir
-  // son tarihe 7 gün eklemek çoğu zaman yine geçmişte kalırdı.
-  const askExtend = async (task: CaptainTask) => {
-    const ok = await confirm({
-      title: t('tasks.extendTitle'),
-      message: t('tasks.extendMessage', { title: task.title }),
-      confirmLabel: t('tasks.extend'),
-      icon: 'time-outline',
-    });
-    if (!ok) return;
-    const { error } = await extendTask(task.id);
-    if (error) return toast(error, 'error');
-    toast(t('tasks.extended'));
-    if (selectedId) load(selectedId);
-  };
-
-  const openProfile = (userId: string | null) => {
-    if (userId) router.push({ pathname: '/kullanici', params: { id: userId } });
-  };
-
   return (
     <Screen>
       <View style={styles.header}>
@@ -241,16 +187,7 @@ export default function KaptanScreen() {
           <Ionicons name="chevron-back" size={26} color={colors.text} />
         </Pressable>
         <Text style={styles.title}>{t('captain.title')}</Text>
-        {selectedId ? (
-          <Pressable
-            onPress={() => router.push({ pathname: '/uyeler', params: { teamId: selectedId } })}
-            hitSlop={12}
-          >
-            <Ionicons name="people-outline" size={24} color={colors.accent} />
-          </Pressable>
-        ) : (
-          <View style={{ width: 26 }} />
-        )}
+        <View style={{ width: 26 }} />
       </View>
 
       {loading ? (
@@ -306,10 +243,7 @@ export default function KaptanScreen() {
                     style={[styles.segment, tab === key && styles.segmentActive]}
                     onPress={() => setTab(key)}
                   >
-                    <Text
-                      style={[styles.segmentText, tab === key && styles.segmentTextActive]}
-                      numberOfLines={1}
-                    >
+                    <Text style={[styles.segmentText, tab === key && styles.segmentTextActive]}>
                       {t(label)}
                     </Text>
                   </Pressable>
@@ -337,12 +271,38 @@ export default function KaptanScreen() {
                   </Pressable>
                 </View>
               )}
+              {tab === 'gorevler' && (
+                <View style={styles.assignBox}>
+                  <Text style={styles.assignLabel}>{t('captain.assignLabel')}</Text>
+                  <View style={styles.assignChips}>
+                    {(data?.members ?? []).map((m) => (
+                      <Pressable
+                        key={m.id}
+                        onPress={() => toggleAssignee(m.id)}
+                        style={[styles.chip, { marginRight: 0 }, assignees.includes(m.id) && styles.chipActive]}
+                      >
+                        <Text style={[styles.chipText, assignees.includes(m.id) && styles.chipTextActive]}>
+                          {m.name}
+                          {m.isRookie ? ' ·R' : ''}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                  <TextInput
+                    value={dueDate}
+                    onChangeText={setDueDate}
+                    placeholder={t('captain.dueLabel')}
+                    placeholderTextColor={colors.textFaint}
+                    style={styles.dueInput}
+                    autoCapitalize="none"
+                  />
+                </View>
+              )}
             </View>
           }
           renderItem={({ item: s }) => (
             <View style={styles.subCard}>
-              {/* Ada dokunmak profili açar — kaptan kişinin tüm geçmişini oradan görür. */}
-              <Pressable style={styles.subHead} onPress={() => openProfile(s.memberId)}>
+              <View style={styles.subHead}>
                 <View style={styles.subAvatar}>
                   <Text style={styles.subAvatarText}>{s.member.slice(0, 2).toUpperCase()}</Text>
                 </View>
@@ -350,11 +310,6 @@ export default function KaptanScreen() {
                   <Text style={styles.subMember}>{s.member}</Text>
                   <Text style={styles.subTask}>{s.taskTitle}</Text>
                 </View>
-                {s.late && (
-                  <View style={styles.latePill}>
-                    <Text style={styles.lateText}>{t('tasks.late')}</Text>
-                  </View>
-                )}
                 {s.status !== 'pending' && (
                   <View style={[styles.decidedPill, { backgroundColor: DECIDED[s.status].bg }]}>
                     <Text style={[styles.decidedText, { color: DECIDED[s.status].color }]}>
@@ -362,8 +317,7 @@ export default function KaptanScreen() {
                     </Text>
                   </View>
                 )}
-                <Ionicons name="chevron-forward" size={16} color={colors.textFaint} />
-              </Pressable>
+              </View>
 
               {s.videoUrl ? (
                 <InlineVideo
@@ -379,11 +333,6 @@ export default function KaptanScreen() {
               )}
 
               {s.note ? <Text style={styles.noteLine}>“{s.note}”</Text> : null}
-              {s.status === 'rejected' && s.rejectNote ? (
-                <Text style={styles.rejectNoteLine}>
-                  {t('captain.rejectReason')}: {s.rejectNote}
-                </Text>
-              ) : null}
 
               {s.status === 'pending' && (
                 <View style={styles.subActions}>
@@ -422,20 +371,14 @@ export default function KaptanScreen() {
                           <Text style={styles.taskTitle}>{task.title}</Text>
                           <Text style={styles.taskSub}>
                             {t('tasks.points', { n: task.points })} ·{' '}
-                            {t('captain.taskDone', { n: task.approvedCount })}
-                          </Text>
-                          <Text style={task.overdue ? styles.dueLate : styles.dueSoon}>
-                            {task.dueAt ? dueLabel(task.dueAt) : t('tasks.noDue')}
+                            {task.assignedTo
+                              ? t('captain.assignedTo', { names: task.assignedTo.map(nameOf).join(', ') })
+                              : t('captain.wholeTeam')}{' '}
+                            · {task.rows.filter((r) => r.status === 'approved').length}/{task.rows.length}
+                            {task.dueAt ? ` · ${t('tasks.due', { date: task.dueAt.slice(5, 10) })}` : ''}
                           </Text>
                         </View>
-                        <Pressable onPress={() => askExtend(task)} hitSlop={10} style={styles.taskAction}>
-                          <Ionicons
-                            name="time-outline"
-                            size={17}
-                            color={task.overdue ? colors.warning : colors.textFaint}
-                          />
-                        </Pressable>
-                        <Pressable onPress={() => removeTask(task)} hitSlop={10} style={styles.taskAction}>
+                        <Pressable onPress={() => removeTask(task)} hitSlop={10}>
                           <Ionicons name="trash-outline" size={17} color={colors.textFaint} />
                         </Pressable>
                       </View>
@@ -459,11 +402,7 @@ export default function KaptanScreen() {
                       ))}
                     </View>
                     {data.members.map((m) => (
-                      <Pressable
-                        key={m.id}
-                        style={styles.gridRow}
-                        onPress={() => openProfile(m.id)}
-                      >
+                      <View key={m.name} style={styles.gridRow}>
                         <Text style={styles.memberName}>{m.name}</Text>
                         {m.statuses.map((st, i) => {
                           const c = CELL[st];
@@ -475,7 +414,7 @@ export default function KaptanScreen() {
                             </View>
                           );
                         })}
-                      </Pressable>
+                      </View>
                     ))}
                     <View style={styles.legend}>
                       <Legend icon="checkmark" color={colors.success} label={t('captain.legendDone')} />
@@ -485,127 +424,73 @@ export default function KaptanScreen() {
                   </>
                 )}
               </View>
-            ) : tab === 'rapor' ? (
-              <ReportPanel
-                report={report}
-                loading={reportLoading}
-                offset={weekOffset}
-                onOffset={setWeekOffset}
-                onMember={openProfile}
-              />
+            ) : tab === 'aktivite' ? (
+              <View>
+                <View style={styles.activityHead}>
+                  <Text style={styles.assignLabel}>{t('captain.activity')}</Text>
+                  <Text style={styles.tapHint}>{t('captain.tapHint')}</Text>
+                </View>
+                {activity.map((m) => (
+                  <Pressable
+                    key={m.userId}
+                    style={styles.activityRow}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/uye-analiz',
+                        params: { userId: m.userId, username: m.name, teamId: selectedId ?? '' },
+                      })
+                    }
+                  >
+                    <View style={styles.subAvatar}>
+                      <Text style={styles.subAvatarText}>{m.name.slice(0, 2).toUpperCase()}</Text>
+                    </View>
+                    <View style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                      <Text style={styles.memberNameBig}>{m.name}</Text>
+                      {m.isRookie && (
+                        <View style={styles.rookiePill}>
+                          <Text style={styles.rookieText}>{t('captain.rookieTag')}</Text>
+                        </View>
+                      )}
+                    </View>
+                    {m.streak > 0 ? (
+                      <View style={styles.streakWrap}>
+                        <Ionicons name="flame" size={14} color={colors.accent} />
+                        <Text style={styles.streakText}>{t('captain.streakDays', { n: m.streak })}</Text>
+                      </View>
+                    ) : m.daysSince === null ? (
+                      <View style={[styles.absentPill, { backgroundColor: colors.surface2 }]}>
+                        <Text style={[styles.absentText, { color: colors.textFaint }]}>{t('captain.never')}</Text>
+                      </View>
+                    ) : (
+                      <View
+                        style={[
+                          styles.absentPill,
+                          { backgroundColor: m.daysSince >= 7 ? colors.dangerBg : colors.warningBg },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            styles.absentText,
+                            { color: m.daysSince >= 7 ? colors.danger : colors.warning },
+                          ]}
+                        >
+                          {m.daysSince === 0 ? t('captain.today') : t('captain.absent', { n: m.daysSince })}
+                        </Text>
+                      </View>
+                    )}
+                  </Pressable>
+                ))}
+              </View>
             ) : submissions.length === 0 ? (
               <View style={styles.empty}>
                 <Ionicons name="videocam-outline" size={40} color={colors.textFaint} />
                 <Text style={styles.emptyText}>{t('captain.noProofs')}</Text>
               </View>
-            ) : (
-              <Text style={styles.addHint}>{t('captain.decidedHint')}</Text>
-            )
+            ) : null
           }
         />
       )}
     </Screen>
-  );
-}
-
-/**
- * Haftalık rapor — o haftanın görevlerinde kim tam yaptı, kim yarım bıraktı,
- * kim hiç kımıldamadı. Satıra dokununca kişinin profili açılır (videolar orada).
- */
-function ReportPanel({
-  report,
-  loading,
-  offset,
-  onOffset,
-  onMember,
-}: {
-  report: WeeklyReport | null;
-  loading: boolean;
-  offset: number;
-  onOffset: (n: number) => void;
-  onMember: (id: string) => void;
-}) {
-  const t = useT();
-
-  const counts = {
-    full: report?.members.filter((m) => m.status === 'full').length ?? 0,
-    partial: report?.members.filter((m) => m.status === 'partial').length ?? 0,
-    none: report?.members.filter((m) => m.status === 'none').length ?? 0,
-  };
-
-  return (
-    <View>
-      <View style={styles.weekNav}>
-        <Pressable onPress={() => onOffset(offset - 1)} hitSlop={10} style={styles.weekBtn}>
-          <Ionicons name="chevron-back" size={18} color={colors.text} />
-        </Pressable>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <Text style={styles.weekLabel}>{report?.rangeLabel ?? ''}</Text>
-          <Text style={styles.weekSub}>
-            {offset === 0 ? `${t('report.thisWeek')} · ` : ''}
-            {t(report?.closed ? 'report.weekClosed' : 'report.weekOpen')}
-          </Text>
-        </View>
-        {/* İleri yön bu haftada durur — gelecek haftanın raporu diye bir şey yok. */}
-        <Pressable
-          onPress={() => onOffset(Math.min(0, offset + 1))}
-          hitSlop={10}
-          style={styles.weekBtn}
-          disabled={offset >= 0}
-        >
-          <Ionicons
-            name="chevron-forward"
-            size={18}
-            color={offset >= 0 ? colors.textFaint : colors.text}
-          />
-        </Pressable>
-      </View>
-
-      {loading ? (
-        <ListSkeleton count={3} height={64} />
-      ) : !report || report.taskCount === 0 ? (
-        <Text style={styles.emptyText}>{t('report.noTasks')}</Text>
-      ) : report.members.length === 0 ? (
-        <Text style={styles.emptyText}>{t('report.noMembers')}</Text>
-      ) : (
-        <>
-          <Text style={styles.reportSummary}>
-            {t('report.taskCount', { n: report.taskCount })} · {t('report.summary', counts)}
-          </Text>
-
-          {report.members.map((m) => {
-            const s = REPORT_STATUS[m.status];
-            // Hafta sürerken hiç yapmayana "hiç yapmadı" demek erken — henüz vakti var.
-            const label = m.status === 'none' && !report.closed ? 'report.noneOpen' : s.label;
-            const bits = [
-              t('report.doneOf', { done: m.done, total: m.total }),
-              m.pending > 0 ? t('report.pendingCount', { n: m.pending }) : null,
-              m.rejected > 0 ? t('report.rejectedCount', { n: m.rejected }) : null,
-              m.missing > 0 ? t('report.missingCount', { n: m.missing }) : null,
-              m.late > 0 ? t('report.lateCount', { n: m.late }) : null,
-            ].filter(Boolean);
-
-            return (
-              <Pressable key={m.userId} style={styles.reportRow} onPress={() => onMember(m.userId)}>
-                <Avatar username={m.name} url={m.avatarUrl} size={36} />
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.reportName}>{m.name}</Text>
-                  <Text style={styles.reportBits}>{bits.join(' · ')}</Text>
-                  {m.missedTitles.length > 0 && (
-                    <Text style={styles.reportMissed} numberOfLines={2}>
-                      {t('report.missed', { list: m.missedTitles.join(', ') })}
-                    </Text>
-                  )}
-                </View>
-                <View style={[styles.reportPill, { backgroundColor: s.bg }]}>
-                  <Text style={[styles.reportPillText, { color: s.color }]}>{t(label)}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </>
-      )}
-    </View>
   );
 }
 
@@ -648,16 +533,39 @@ const styles = makeStyles((colors) => ({
     padding: 3,
     marginBottom: spacing.lg,
   },
-  // Dört sekme yan yana — dar telefonda sıkışmasın diye yatay boşluk kısıldı.
-  segment: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 2,
-    borderRadius: radius.sm,
-  },
+  segment: { flex: 1, alignItems: 'center', paddingVertical: 8, borderRadius: radius.sm },
   segmentActive: { backgroundColor: colors.surface2 },
-  segmentText: { color: colors.textDim, fontSize: fontSize.xs },
+  segmentText: { color: colors.textDim, fontSize: fontSize.sm },
+  assignBox: { marginBottom: spacing.lg, gap: spacing.sm },
+  assignLabel: { color: colors.textDim, fontSize: fontSize.xs, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.8 },
+  assignChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  dueInput: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 10,
+    color: colors.text,
+    fontSize: fontSize.sm,
+  },
+  activityHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: spacing.sm },
+  tapHint: { color: colors.textFaint, fontSize: fontSize.xs },
+  activityRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    paddingVertical: spacing.md,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: colors.lineSoft,
+  },
+  memberNameBig: { color: colors.text, fontSize: fontSize.md, fontWeight: '500' },
+  rookiePill: { backgroundColor: 'rgba(78,168,255,0.12)', borderRadius: radius.pill, paddingHorizontal: 7, paddingVertical: 2 },
+  rookieText: { color: '#4EA8FF', fontSize: 9, fontWeight: '700' },
+  streakWrap: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  streakText: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
+  absentPill: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 4 },
+  absentText: { fontSize: fontSize.xs, fontWeight: '600' },
   segmentTextActive: { color: colors.text, fontWeight: '600' },
 
   addRow: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.lg },
@@ -699,9 +607,6 @@ const styles = makeStyles((colors) => ({
   taskOrder: { color: colors.accent, fontSize: fontSize.sm, fontWeight: '600' },
   taskTitle: { color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
   taskSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
-  taskAction: { width: 30, alignItems: 'center' },
-  dueSoon: { color: colors.textDim, fontSize: fontSize.xs, marginTop: 2 },
-  dueLate: { color: colors.danger, fontSize: fontSize.xs, marginTop: 2 },
   empty: { alignItems: 'center', gap: spacing.md, paddingTop: spacing.xxl },
   emptyText: { color: colors.textDim, fontSize: fontSize.md, textAlign: 'center' },
   subCard: {
@@ -725,13 +630,6 @@ const styles = makeStyles((colors) => ({
   subTask: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
   decidedPill: { paddingHorizontal: 9, paddingVertical: 3, borderRadius: radius.pill },
   decidedText: { fontSize: fontSize.xs, fontWeight: '500' },
-  latePill: {
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: radius.pill,
-    backgroundColor: colors.warningBg,
-  },
-  lateText: { color: colors.warning, fontSize: fontSize.xs, fontWeight: '500' },
   videoBox: {
     width: '100%',
     aspectRatio: 4 / 5,
@@ -749,7 +647,6 @@ const styles = makeStyles((colors) => ({
   },
   note: { color: colors.textFaint, fontSize: fontSize.sm },
   noteLine: { color: colors.textDim, fontSize: fontSize.xs, marginTop: spacing.sm },
-  rejectNoteLine: { color: colors.danger, fontSize: fontSize.xs, marginTop: spacing.xs },
   subActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   approveBtn: {
     flexDirection: 'row',
@@ -788,30 +685,4 @@ const styles = makeStyles((colors) => ({
   legend: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.md },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   legendText: { color: colors.textFaint, fontSize: fontSize.xs },
-
-  weekNav: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderRadius: radius.md,
-    padding: spacing.sm,
-    marginBottom: spacing.lg,
-  },
-  weekBtn: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center' },
-  weekLabel: { color: colors.text, fontSize: fontSize.sm, fontWeight: '600' },
-  weekSub: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 2 },
-  reportSummary: { color: colors.textDim, fontSize: fontSize.xs, marginBottom: spacing.sm },
-  reportRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-    paddingVertical: spacing.md,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.lineSoft,
-  },
-  reportName: { color: colors.text, fontSize: fontSize.sm, fontWeight: '500' },
-  reportBits: { color: colors.textDim, fontSize: fontSize.xs, marginTop: 2 },
-  reportMissed: { color: colors.textFaint, fontSize: fontSize.xs, marginTop: 3, lineHeight: 15 },
-  reportPill: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: radius.pill },
-  reportPillText: { fontSize: fontSize.xs, fontWeight: '600' },
 }));

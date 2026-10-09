@@ -41,6 +41,8 @@ const ICON: Record<NotificationKind, keyof typeof Ionicons.glyphMap> = {
   decision: 'checkmark-done',
   task: 'list',
   session: 'flash',
+  join: 'person-add',
+  event: 'american-football',
 };
 
 type Tab = 'inbox' | 'settings';
@@ -125,6 +127,15 @@ export default function BildirimlerScreen() {
         router.push('/gorevler');
         break;
       case 'session':
+        break;
+      case 'event':
+        if (n.eventId) router.push({ pathname: '/idman', params: { id: n.eventId } });
+        else router.push('/idmanlar');
+        break;
+      case 'join':
+        // İstek → kaptan üyeler ekranında onaylar; karar → kişi profilinde görür.
+        if (n.detail === 'request' && n.teamId) router.push({ pathname: '/uyeler', params: { teamId: n.teamId } });
+        else router.push('/profil');
         break;
     }
   };

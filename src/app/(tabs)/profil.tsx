@@ -193,7 +193,12 @@ export default function ProfilScreen() {
   };
 
   const changeAvatar = async () => {
-    const uri = await pickAvatarImage();
+    let uri: string | null = null;
+    try {
+      uri = await pickAvatarImage();
+    } catch (e) {
+      return toast(e instanceof Error ? e.message : String(e), 'error');
+    }
     if (!uri) return;
     setUploadingAvatar(true);
     const { error, avatarUrl: url } = await uploadAvatar(uri);
@@ -331,7 +336,7 @@ export default function ProfilScreen() {
                               { color: team.role === 'captain' ? colors.accent : colors.textDim },
                             ]}
                           >
-                            {team.role === 'captain' ? t('profile.captain') : t('profile.member')}
+                            {team.role === 'captain' ? t('profile.captain') : team.role === 'coach' ? t('profile.coach') : t('profile.member')}
                           </Text>
                         </View>
                       </View>

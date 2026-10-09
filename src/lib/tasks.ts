@@ -33,6 +33,10 @@ export type TeamTask = {
   overdue: boolean;
   /** Kanıtım son tarihten sonra mı gitti. */
   submittedLate: boolean;
+  /** Görev kişiye özel mi (assigned_to dolu mu)? */
+  isAssigned: boolean;
+  /** Kişiye özel görevse bana mı atanmış; null assigned_to = tüm takım. */
+  assignedToMe: boolean;
 };
 
 export function isOverdue(dueAt: string | null | undefined): boolean {
@@ -48,7 +52,7 @@ export function isLate(submittedAt: string | null | undefined, dueAt: string | n
 export async function getTeamTasks(teamId: string, userId: string): Promise<TeamTask[]> {
   const { data, error } = await supabase
     .from('tasks')
-    .select('id, title, points, due_at, submissions(user_id, status, reject_note, submitted_at)')
+    .select('id, title, points, due_at, assigned_to, submissions(user_id, status, reject_note, submitted_at)')
     .eq('team_id', teamId)
     .order('due_at', { ascending: true, nullsFirst: false })
     .order('created_at', { ascending: true });
@@ -58,7 +62,10 @@ export async function getTeamTasks(teamId: string, userId: string): Promise<Team
   return (data as any[]).map((row) => {
     const mine = (row.submissions ?? []).find((s: any) => s.user_id === userId);
     const dueAt = row.due_at ?? null;
+    const assigned: string[] | null = row.assigned_to ?? null;
     return {
+      isAssigned: !!assigned?.length,
+      assignedToMe: !!assigned?.includes(userId),
       id: String(row.id),
       title: row.title,
       points: row.points ?? 10,
@@ -68,14 +75,18 @@ export async function getTeamTasks(teamId: string, userId: string): Promise<Team
       overdue: isOverdue(dueAt),
       submittedLate: !!mine && isLate(mine.submitted_at, dueAt),
     };
-  });
+  })
+    // Kişiye özel görev başkasına atanmışsa listede görünmesin.
+    .filter((t) => !t.isAssigned || t.assignedToMe);
 }
 
 export async function createTask(
   teamId: string,
   title: string,
   points = 10,
-  dueAt: string = defaultDueAt()
+  dueAt: string = defaultDueAt(),
+  /** Boş/atlanırsa görev tüm takıma açıktır. */
+  assignedTo?: string[]
 ): Promise<{ error: string | null }> {
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from('tasks').insert({
@@ -84,6 +95,7 @@ export async function createTask(
     points,
     due_at: dueAt,
     created_by: u.user?.id,
+    assigned_to: assignedTo?.length ? assignedTo : null,
   });
   return { error: error?.message ?? null };
 }

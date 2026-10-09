@@ -18,6 +18,7 @@ import { Platform } from 'react-native';
 import { t } from '@/lib/i18n';
 import { getPrefs } from '@/lib/prefs';
 import { avatarUrlFrom } from '@/lib/profile';
+import { displayName } from '@/lib/names';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { timeAgo } from '@/lib/time';
 
@@ -137,7 +138,9 @@ export type NotificationKind =
   | 'submission'
   | 'decision'
   | 'task'
-  | 'session';
+  | 'session'
+  | 'join'
+  | 'event';
 
 export type AppNotification = {
   id: string;
@@ -150,13 +153,14 @@ export type AppNotification = {
   postId: string | null;
   teamId: string | null;
   taskId: string | null;
+  eventId: string | null;
   read: boolean;
   timeLabel: string;
 };
 
 const INBOX_SELECT =
-  'id, kind, detail, subject, actor_id, post_id, team_id, task_id, read_at, created_at, ' +
-  'actor:profiles!notifications_actor_id_fkey(username, avatar_path)';
+  'id, kind, detail, subject, actor_id, post_id, team_id, task_id, event_id, read_at, created_at, ' +
+  'actor:profiles!notifications_actor_id_fkey(username, full_name, avatar_path)';
 
 function mapNotification(row: any): AppNotification {
   return {
@@ -165,11 +169,12 @@ function mapNotification(row: any): AppNotification {
     detail: row.detail ?? null,
     subject: row.subject ?? null,
     actorId: row.actor_id ?? null,
-    actorName: row.actor?.username ?? null,
+    actorName: row.actor ? displayName(row.actor) : null,
     actorAvatarUrl: avatarUrlFrom(row.actor?.avatar_path),
     postId: row.post_id ?? null,
     teamId: row.team_id ?? null,
     taskId: row.task_id ?? null,
+    eventId: row.event_id ?? null,
     read: !!row.read_at,
     timeLabel: row.created_at ? timeAgo(row.created_at) : '',
   };
@@ -220,6 +225,12 @@ export function notificationText(n: AppNotification): string {
       return t('inbox.task', { task: subject });
     case 'session':
       return subject ? t('inbox.sessionAt', { who, gym: subject }) : t('inbox.session', { who });
+    case 'join':
+      if (n.detail === 'approved') return t('inbox.joinApproved', { team: subject });
+      if (n.detail === 'rejected') return t('inbox.joinRejected', { team: subject });
+      return t('inbox.joinRequest', { who, team: subject });
+    case 'event':
+      return t(n.detail === 'reminder' ? 'inbox.eventReminder' : 'inbox.eventNew', { event: subject });
   }
 }
 

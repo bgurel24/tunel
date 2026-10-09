@@ -30,7 +30,7 @@ type Lang = 'tr' | 'en';
 type NotificationRow = {
   id: string;
   user_id: string;
-  kind: 'reaction' | 'comment' | 'submission' | 'decision' | 'task' | 'session';
+  kind: 'reaction' | 'comment' | 'submission' | 'decision' | 'task' | 'session' | 'join' | 'event';
   detail: string | null;
   subject: string | null;
   actor: { username: string } | null;
@@ -65,6 +65,21 @@ function bodyFor(row: NotificationRow, lang: Lang): string {
       return lang === 'tr'
         ? `${who} antrenman çağrısı açtı${subject ? ` — ${subject}` : ''}`
         : `${who} opened a training call${subject ? ` — ${subject}` : ''}`;
+    case 'join':
+      if (row.detail === 'approved') return lang === 'tr' ? `${subject} takımına kabul edildin 🎉` : `You're in ${subject} 🎉`;
+      if (row.detail === 'rejected') return lang === 'tr' ? `${subject} katılma isteğin reddedildi` : `Your request to join ${subject} was declined`;
+      return lang === 'tr' ? `${who} ${subject} takımına katılmak istiyor` : `${who} wants to join ${subject}`;
+    case 'event':
+      if (row.detail === 'reminder') {
+        return lang === 'tr'
+          ? `🏈 ${subject} yaklaşıyor — katılım durumunu henüz bildirmedin`
+          : `🏈 ${subject} is coming up — you haven't answered yet`;
+      }
+      return lang === 'tr'
+        ? `🏈 Yeni idman: ${subject}. Katılım durumunu bildir.`
+        : `🏈 New session: ${subject}. Let the coach know if you're coming.`;
+    default:
+      return lang === 'tr' ? 'Yeni bir bildirimin var' : 'You have a new notification';
   }
 }
 

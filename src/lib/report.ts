@@ -6,6 +6,7 @@
 // aldığı için hafta ortasında verilen görev bir sonraki haftaya düşebilir).
 
 import { avatarUrlFrom } from '@/lib/profile';
+import { displayName } from '@/lib/names';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 import { isLate } from '@/lib/tasks';
 import { weekRangeLabel, weekStart } from '@/lib/time';
@@ -69,7 +70,7 @@ export async function getWeeklyReport(teamId: string, offset = 0): Promise<Weekl
       .order('due_at', { ascending: true }),
     supabase
       .from('team_members')
-      .select('profiles!team_members_user_id_fkey(id, username, avatar_path)')
+      .select('profiles!team_members_user_id_fkey(id, username, full_name, avatar_path)')
       .eq('team_id', teamId),
   ]);
 
@@ -83,7 +84,7 @@ export async function getWeeklyReport(teamId: string, offset = 0): Promise<Weekl
     .filter((m) => m.profiles)
     .map((m) => ({
       id: String(m.profiles.id),
-      name: m.profiles.username as string,
+      name: displayName(m.profiles),
       avatarUrl: avatarUrlFrom(m.profiles.avatar_path),
     }));
 

@@ -42,7 +42,9 @@ import {
   useThemeTick,
 } from '@/theme';
 
-const FEEDBACK_EMAIL = 'burakgurel81@gmail.com';
+// Geri bildirim Emir'e gider, Burak CC'de.
+const FEEDBACK_EMAIL = 'eemr.orc@gmail.com';
+const FEEDBACK_CC = 'burakgurel81@gmail.com';
 const WEEKLY_GOALS = [2, 3, 4, 5, 6, 7];
 
 export default function AyarlarScreen() {
@@ -156,7 +158,7 @@ export default function AyarlarScreen() {
 
   const sendFeedback = () => {
     const subject = encodeURIComponent(t('settings.contactSubject'));
-    Linking.openURL(`mailto:${FEEDBACK_EMAIL}?subject=${subject}`).catch(() => {});
+    Linking.openURL(`mailto:${FEEDBACK_EMAIL}?cc=${FEEDBACK_CC}&subject=${subject}`).catch(() => {});
   };
 
   return (

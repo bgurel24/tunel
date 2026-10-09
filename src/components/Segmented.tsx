@@ -3,7 +3,7 @@
 import { Haptics } from '@/lib/haptics';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Animated, { useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { Easing, useAnimatedStyle, withTiming } from 'react-native-reanimated';
 
 import { Text } from '@/components/Text';
 import { fontSize, makeStyles, radius } from '@/theme';
@@ -25,7 +25,14 @@ export function Segmented<T extends string>({ options, value, onChange }: Props<
 
   const pill = useAnimatedStyle(() => ({
     width: itemWidth,
-    transform: [{ translateX: withSpring(index * itemWidth, { damping: 18, stiffness: 220 }) }],
+    transform: [
+      {
+        translateX: withTiming(index * itemWidth, {
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+        }),
+      },
+    ],
   }));
 
   return (
